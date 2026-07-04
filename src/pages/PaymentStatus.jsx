@@ -1,14 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import useAuthStore from '../stores/authStore';
 
 export default function PaymentStatus() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get('status');
   const navigate = useNavigate();
+  const checkUserStatus = useAuthStore(state => state.checkUserStatus);
+  const user = useAuthStore(state => state.user);
+  const [loading, setLoading] = useState(false);
+
+  const handleGoToDashboard = async () => {
+    setLoading(true);
+    if (user) {
+      await checkUserStatus(user);
+    }
+    navigate('/dashboard', { replace: true });
+  };
 
   return (
     <MainLayout title="Status Pembayaran">
@@ -23,8 +35,8 @@ export default function PaymentStatus() {
               <p className="font-['Work_Sans'] mb-8">
                 Terima kasih. Akses lifetime Anda telah diaktifkan. Anda sekarang dapat menggunakan seluruh fitur Kalkulator SE-2026.
               </p>
-              <Button className="w-full" onClick={() => navigate('/dashboard', { replace: true })}>
-                Masuk ke Dashboard
+              <Button className="w-full" onClick={handleGoToDashboard} disabled={loading}>
+                {loading ? 'Memuat Data...' : 'Masuk ke Dashboard'}
               </Button>
             </>
           ) : (
