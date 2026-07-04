@@ -32,7 +32,8 @@ Deno.serve(async (req) => {
       gross_amount,
       signature_key,
       transaction_status,
-      fraud_status
+      fraud_status,
+      custom_field1
     } = payload;
 
     // 1. Verify Signature
@@ -57,11 +58,10 @@ Deno.serve(async (req) => {
 
     // 3. Update database if success
     if (paymentSuccess) {
-      // Extract user_id from order_id (Format: SE2026-<user_id>-<timestamp>)
-      const parts = order_id.split('-');
-      if (parts.length >= 2) {
-        const userId = parts[1];
-        
+      // Extract full user_id from custom_field1 instead of order_id
+      const userId = custom_field1;
+      
+      if (userId) {
         console.log(`Payment successful for user ${userId}. Updating database...`);
         
         const { error } = await supabase
@@ -73,6 +73,8 @@ Deno.serve(async (req) => {
           console.error('Error updating Supabase:', error);
           throw error;
         }
+      } else {
+        console.warn('custom_field1 (user_id) is missing in webhook payload!');
       }
     }
 
