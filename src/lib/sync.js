@@ -77,8 +77,6 @@ export const syncData = async () => {
           await supabase.from('business_details').upsert({
             respondent_id: bus.respondent_id,
             jenis_usaha: bus.jenis_usaha || null,
-            sektor_id: bus.sektor_id || null,
-            sektor_data: bus.sektor_data || null,
             nib: bus.nib || null,
             jenis_barang: bus.jenis_barang || null,
             tahun_mulai: bus.tahun_mulai || null,
@@ -165,12 +163,15 @@ export const pullData = async () => {
   if (!user) return { success: false, message: 'Belum login' };
 
   try {
-    // 1. Ambil Blocks
-    const { data: blocks, error: blockErr } = await supabase.from('blocks').select('*').eq('user_id', user.id);
+    // ── 1. Ambil Blocks dari Cloud ──────────────────────────────
+    const { data: cloudBlocks, error: blockErr } = await supabase.from('blocks').select('*').eq('user_id', user.id);
     if (blockErr) throw blockErr;
 
-    if (blocks) {
-      for (const b of blocks) {
+    const cloudBlockIds = new Set((cloudBlocks || []).map(b => b.id));
+
+    // Upsert blocks dari cloud ke lokal
+    if (cloudBlocks) {
+      for (const b of cloudBlocks) {
         const isDeletedLocal = await DeletedRecordDB.isDeleted(b.id);
         if (isDeletedLocal) continue;
 
@@ -182,25 +183,41 @@ export const pullData = async () => {
             nama_blok: b.nama_blok,
             created_at: new Date(b.created_at).getTime()
           });
+        } else {
+          await BlockDB.update(b.id, {
+            nama_blok: b.nama_blok
+          });
         }
       }
     }
 
-    // 2. Ambil Respondents
-    const { data: respondents, error: resErr } = await supabase.from('respondents').select('*');
+    // RECONCILE: Hapus blocks lokal yang sudah tidak ada di cloud
+    const localBlocks = await BlockDB.getAllByUser(user.id);
+    for (const lb of localBlocks) {
+      if (!cloudBlockIds.has(lb.id)) {
+        // Block sudah dihapus di cloud — hapus lokal beserta semua child-nya
+        const isDeletedLocal = await DeletedRecordDB.isDeleted(lb.id);
+        if (!isDeletedLocal) {
+          // Bukan kita yang menghapus secara offline, jadi aman untuk dihapus
+          await BlockDB.delete(lb.id);
+        }
+      }
+    }
+
+    // ── 2. Ambil Respondents dari Cloud ─────────────────────────
+    const { data: cloudRespondents, error: resErr } = await supabase.from('respondents').select('*');
     if (resErr) throw resErr;
 
-    if (respondents) {
-      for (const r of respondents) {
-        // Abaikan data yang sudah dihapus secara lokal (menunggu sync hapus)
+    const cloudRespondentIds = new Set((cloudRespondents || []).map(r => r.id));
+
+    // Upsert respondents dari cloud ke lokal
+    if (cloudRespondents) {
+      for (const r of cloudRespondents) {
         const isDeletedLocal = await DeletedRecordDB.isDeleted(r.id);
         if (isDeletedLocal) continue;
 
         const existing = await RespondentDB.getById(r.id);
-        // Jangan timpa jika data lokal masih berstatus 'pending' (belum di-push)
         if (!existing || existing.sync_status === 'synced') {
-          // Kalau sudah ada tapi 'synced', bisa kita put/update
-          // Kalau belum ada, kita tambahkan
           const resObj = {
             id: r.id,
             block_id: r.block_id,
@@ -209,7 +226,7 @@ export const pullData = async () => {
             nomor_kk: r.nomor_kk,
             nama_kpl_keluarga: r.nama_kpl_keluarga,
             alamat: r.alamat,
-            sync_status: 'synced', // dari cloud selalu diset synced
+            sync_status: 'synced',
             updated_at: new Date(r.updated_at).getTime()
           };
           if (!existing) {
@@ -221,51 +238,91 @@ export const pullData = async () => {
       }
     }
 
-    // 3. Ambil Family Members
-    const { data: members, error: memErr } = await supabase.from('family_members').select('*');
-    if (memErr) throw memErr;
-    if (members) {
-      for (const m of members) {
-        // Karena members tidak punya 'getById' di Helper kita, ambil via Respondent ID
-        const existingAll = await FamilyMemberDB.getAllByRespondent(m.respondent_id);
-        const existing = existingAll.find(em => em.id === m.id);
-        if (!existing) {
-          await FamilyMemberDB.add(m);
+    // RECONCILE: Hapus respondents lokal yang sudah tidak ada di cloud
+    const localAllRespondents = await RespondentDB.getAll();
+    for (const lr of localAllRespondents) {
+      if (!cloudRespondentIds.has(lr.id)) {
+        // Hanya hapus jika statusnya 'synced' (artinya pernah di-push ke cloud dan sekarang hilang)
+        // Jangan hapus jika 'pending' (data baru yang belum sempat di-push)
+        const isDeletedLocal = await DeletedRecordDB.isDeleted(lr.id);
+        if (lr.sync_status === 'synced' && !isDeletedLocal) {
+          await RespondentDB.delete(lr.id);
         }
       }
     }
 
-    // 4. Ambil Business Details
-    const { data: businesses, error: busErr } = await supabase.from('business_details').select('*');
+    // ── 3. Ambil Family Members ─────────────────────────────────
+    const { data: cloudMembers, error: memErr } = await supabase.from('family_members').select('*');
+    if (memErr) throw memErr;
+
+    const cloudMemberIds = new Set((cloudMembers || []).map(m => m.id));
+
+    if (cloudMembers) {
+      for (const m of cloudMembers) {
+        const localRes = await RespondentDB.getById(m.respondent_id);
+        if (!localRes || localRes.sync_status === 'synced') {
+          await FamilyMemberDB.put(m);
+        }
+      }
+    }
+
+    // RECONCILE: Hapus family members lokal yang respondent-nya sudah synced
+    // tapi member-nya sudah tidak ada di cloud
+    for (const resId of cloudRespondentIds) {
+      const localMembers = await FamilyMemberDB.getAllByRespondent(resId);
+      for (const lm of localMembers) {
+        if (!cloudMemberIds.has(lm.id)) {
+          await FamilyMemberDB.deleteByRespondent(resId);
+          // Re-add only cloud members for this respondent
+          const cloudMembersForRes = (cloudMembers || []).filter(m => m.respondent_id === resId);
+          for (const cm of cloudMembersForRes) {
+            await FamilyMemberDB.put(cm);
+          }
+          break; // Already handled this respondent
+        }
+      }
+    }
+
+    // ── 4. Ambil Business Details ───────────────────────────────
+    const { data: cloudBusinesses, error: busErr } = await supabase.from('business_details').select('*');
     if (busErr) throw busErr;
-    if (businesses) {
-      for (const b of businesses) {
-        const existing = await BusinessDetailDB.get(b.respondent_id);
-        if (!existing) {
+
+    const cloudBusResIds = new Set((cloudBusinesses || []).map(b => b.respondent_id));
+
+    if (cloudBusinesses) {
+      for (const b of cloudBusinesses) {
+        const localRes = await RespondentDB.getById(b.respondent_id);
+        if (!localRes || localRes.sync_status === 'synced') {
           await BusinessDetailDB.put(b);
         }
       }
     }
 
-    // 5. Ambil Family Expenses
-    const { data: expenses, error: expErr } = await supabase.from('family_expenses').select('*');
+    // ── 5. Ambil Family Expenses ────────────────────────────────
+    const { data: cloudExpenses, error: expErr } = await supabase.from('family_expenses').select('*');
     if (expErr) throw expErr;
-    if (expenses) {
-      for (const e of expenses) {
-        const existing = await FamilyExpenseDB.get(e.respondent_id);
-        if (!existing) {
+
+    const cloudExpResIds = new Set((cloudExpenses || []).map(e => e.respondent_id));
+
+    if (cloudExpenses) {
+      for (const e of cloudExpenses) {
+        const localRes = await RespondentDB.getById(e.respondent_id);
+        if (!localRes || localRes.sync_status === 'synced') {
           await FamilyExpenseDB.put(e);
         }
       }
     }
 
-    // 6. Ambil Assets Conditions
-    const { data: assets, error: astErr } = await supabase.from('assets_conditions').select('*');
+    // ── 6. Ambil Assets Conditions ──────────────────────────────
+    const { data: cloudAssets, error: astErr } = await supabase.from('assets_conditions').select('*');
     if (astErr) throw astErr;
-    if (assets) {
-      for (const a of assets) {
-        const existing = await AssetsConditionDB.get(a.respondent_id);
-        if (!existing) {
+
+    const cloudAstResIds = new Set((cloudAssets || []).map(a => a.respondent_id));
+
+    if (cloudAssets) {
+      for (const a of cloudAssets) {
+        const localRes = await RespondentDB.getById(a.respondent_id);
+        if (!localRes || localRes.sync_status === 'synced') {
           await AssetsConditionDB.put(a);
         }
       }

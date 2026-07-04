@@ -93,6 +93,7 @@ export const RespondentDB = {
 
 export const FamilyMemberDB = {
   add: async (member) => await db.family_members.add(member),
+  put: async (member) => await db.family_members.put(member),
   bulkAdd: async (members) => await db.family_members.bulkAdd(members),
   getAllByRespondent: async (respondentId) => await db.family_members.where('respondent_id').equals(respondentId).toArray(),
   deleteByRespondent: async (respondentId) => await db.family_members.where('respondent_id').equals(respondentId).delete()
