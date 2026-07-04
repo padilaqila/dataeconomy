@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import Button from '../components/Button';
@@ -12,31 +12,69 @@ export default function Payment() {
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
   const checkUserStatus = useAuthStore(state => state.checkUserStatus);
-  const forceSetLifetimePaid = useAuthStore(state => state.forceSetLifetimePaid);
   const addToast = useUIStore(state => state.addToast);
+
+  useEffect(() => {
+    // Load Midtrans Snap Script
+    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
+    const scriptUrl = 'https://app.sandbox.midtrans.com/snap/snap.js';
+    
+    let scriptTag = document.getElementById('midtrans-script');
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.src = scriptUrl;
+      scriptTag.setAttribute('data-client-key', clientKey);
+      scriptTag.id = 'midtrans-script';
+      document.body.appendChild(scriptTag);
+    }
+    
+    return () => {
+      // Cleanup is optional, but usually better to leave the script loaded 
+      // if user navigates back and forth, to avoid re-downloading.
+    };
+  }, []);
 
   const handlePay = async () => {
     setLoading(true);
-    // Simulasi memanggil backend untuk Midtrans Snap Token
-    setTimeout(async () => {
-      try {
-        if (user) {
-          // Simulasi pembayaran sukses & update db
-          const { error } = await supabase.from('users').update({ is_lifetime_paid: true }).eq('id', user.id);
-          if (error) {
-             console.warn("Update Supabase gagal (Tabel users mungkin belum disetup):", error);
-             // Tetap izinkan masuk (mock berhasil) untuk demo
-          }
-          localStorage.setItem('mock_lifetime_paid', 'true');
-          await checkUserStatus(user);
-          forceSetLifetimePaid(true); // Bypass check jika tabel supabase belum ada
-          navigate('/payment-status?status=success');
+    try {
+      if (!user) throw new Error("Anda belum login");
+      
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { 
+          user_id: user.id, 
+          email: user.email,
+          first_name: user.user_metadata?.first_name || 'Petugas Sensus'
         }
-      } catch (e) {
-        addToast("Kesalahan simulasi pembayaran", "error");
-        setLoading(false);
-      }
-    }, 2000);
+      });
+      
+      if (error) throw error;
+      if (!data?.token) throw new Error("Gagal mendapatkan token transaksi dari server");
+
+      window.snap.pay(data.token, {
+        onSuccess: async function(result) {
+          addToast("Pembayaran berhasil diproses!", "success");
+          // Status di database akan diupdate via Webhook, 
+          // tapi kita bisa langsung arahkan ke halaman sukses
+          navigate('/payment-status?status=success');
+        },
+        onPending: function(result) {
+          addToast("Menunggu pembayaran diselesaikan...", "info");
+          navigate('/payment-status?status=pending');
+        },
+        onError: function(result) {
+          addToast("Pembayaran gagal", "error");
+          setLoading(false);
+        },
+        onClose: function() {
+          addToast("Anda menutup popup pembayaran", "warning");
+          setLoading(false);
+        }
+      });
+    } catch (e) {
+      console.error(e);
+      addToast(e.message || "Terjadi kesalahan saat memproses pembayaran", "error");
+      setLoading(false);
+    }
   };
 
   return (
