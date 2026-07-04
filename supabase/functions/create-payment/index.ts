@@ -46,14 +46,18 @@ Deno.serve(async (req) => {
     const data = await response.json()
     
     if (!response.ok) {
+      console.error('Midtrans API Error Response:', data);
       throw new Error(data.error_messages ? data.error_messages.join(', ') : 'Failed to create transaction')
     }
+
+    console.log('Midtrans transaction created:', data.token);
 
     return new Response(JSON.stringify({ token: data.token, redirect_url: data.redirect_url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
+    console.error('Edge Function Catch Error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
