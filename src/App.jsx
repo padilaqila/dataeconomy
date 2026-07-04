@@ -37,6 +37,9 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/payment" element={<ProtectedRoute requirePayment={false}><Payment /></ProtectedRoute>} />
         <Route path="/payment-status" element={<ProtectedRoute requirePayment={false}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/payment/finish" element={<ProtectedRoute requirePayment={false}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/payment/unfinish" element={<ProtectedRoute requirePayment={false}><PaymentStatus /></ProtectedRoute>} />
+        <Route path="/payment/error" element={<ProtectedRoute requirePayment={false}><PaymentStatus /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/block/:id" element={<ProtectedRoute><BlockDetail /></ProtectedRoute>} />
         <Route path="/wizard/:respondentId" element={<ProtectedRoute><FormWizard /></ProtectedRoute>} />

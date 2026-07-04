@@ -8,7 +8,17 @@ import useAuthStore from '../stores/authStore';
 
 export default function PaymentStatus() {
   const [searchParams] = useSearchParams();
-  const status = searchParams.get('status');
+  const statusParam = searchParams.get('status');
+  const transactionStatus = searchParams.get('transaction_status');
+  const statusCode = searchParams.get('status_code');
+  
+  // Midtrans appends transaction_status (capture/settlement = success) or status_code (200/201 = success)
+  const isSuccess = statusParam === 'success' || 
+                    transactionStatus === 'capture' || 
+                    transactionStatus === 'settlement' || 
+                    statusCode === '200' || 
+                    statusCode === '201';
+
   const navigate = useNavigate();
   const checkUserStatus = useAuthStore(state => state.checkUserStatus);
   const user = useAuthStore(state => state.user);
@@ -25,8 +35,8 @@ export default function PaymentStatus() {
   return (
     <MainLayout title="Status Pembayaran">
       <div className="flex flex-col items-center justify-center mt-10">
-        <Card className={`max-w-md w-full border-[5px] text-center ${status === 'success' ? 'border-[#008000] bg-[#E5F2E5]' : 'border-[#FF0000] bg-[#FFE5E5]'}`}>
-          {status === 'success' ? (
+        <Card className={`max-w-md w-full border-[5px] text-center ${isSuccess ? 'border-[#008000] bg-[#E5F2E5]' : 'border-[#FF0000] bg-[#FFE5E5]'}`}>
+          {isSuccess ? (
             <>
               <CheckCircle2 size={80} className="mx-auto text-[#008000] mb-6" strokeWidth={3} />
               <h2 className="font-['Archivo_Black'] uppercase text-2xl mb-4 text-[#008000]">
