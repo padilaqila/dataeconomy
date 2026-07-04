@@ -16,8 +16,11 @@ Deno.serve(async (req) => {
   try {
     const { user_id, first_name, email } = await req.json()
     
-    // Generate order ID
-    const order_id = `SE2026-${user_id}-${Date.now()}`
+    // Generate order ID (Midtrans limit: max 50 characters)
+    // UUID (36 chars) + Date.now() (13 chars) + prefix (7 chars) = 56 chars (Terlalu panjang!)
+    // Solusi: Ambil 8 karakter pertama dari UUID saja
+    const shortUserId = user_id ? String(user_id).substring(0, 8) : 'guest';
+    const order_id = `SE26-${shortUserId}-${Date.now()}`
     
     const payload = {
       transaction_details: {
