@@ -70,6 +70,25 @@ const useAuthStore = create((set, get) => ({
     return await supabase.auth.signUp({ email, password });
   },
 
+  resetPassword: async (email) => {
+    // This will send either a magic link or OTP depending on Supabase email template settings
+    return await supabase.auth.resetPasswordForEmail(email);
+  },
+
+  verifyResetOtp: async (email, token, newPassword) => {
+    // 1. Verify the OTP for password recovery
+    const { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+    if (verifyError) return { error: verifyError };
+
+    // 2. If successful, session is established. Now update the password.
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    
+    // Sign out to enforce a fresh login with the new credentials
+    await supabase.auth.signOut();
+    
+    return { error: updateError };
+  },
+
   signOut: async () => {
     await supabase.auth.signOut();
   }

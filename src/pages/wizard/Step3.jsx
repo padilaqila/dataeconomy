@@ -18,8 +18,8 @@ export default function Step3({ respondentId, onNext, setDirty, isEditMode }) {
 
   const [showHelper, setShowHelper] = useState(false);
   const [helperData, setHelperData] = useState({
-    periode: '',
-    lama_siklus: '',
+    periode: 'Hari',
+    lama_siklus: '3',
     lama_siklus_custom: '',
     nilai: ''
   });
