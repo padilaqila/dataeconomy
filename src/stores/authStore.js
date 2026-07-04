@@ -41,12 +41,34 @@ const useAuthStore = create((set, get) => ({
         .from('users')
         .select('current_device_id, is_lifetime_paid')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.warn("Supabase users table error (might not exist yet):", error);
         const isMockPaid = localStorage.getItem('mock_lifetime_paid') === 'true';
         set({ user: authUser, session: true, isLifetimePaid: isMockPaid, isLoading: false });
+        return;
+      }
+
+      if (!data) {
+        // Jika data tidak ada (user lama yang mendaftar sebelum ada trigger)
+        // Buat baris baru di public.users
+        const { data: newData, error: insertError } = await supabase
+          .from('users')
+          .insert({ id: authUser.id, email: authUser.email })
+          .select('current_device_id, is_lifetime_paid')
+          .single();
+          
+        if (insertError) {
+          console.error("Gagal membuat profil user:", insertError);
+        }
+        
+        set({ 
+          user: authUser, 
+          session: true, 
+          isLifetimePaid: newData?.is_lifetime_paid || false, 
+          isLoading: false 
+        });
         return;
       }
 
