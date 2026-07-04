@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono&family=Work+Sans:wght@400;600&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply font-sans bg-white text-black;
+    font-family: 'Work Sans', sans-serif;
+  }
+  
+  h1, h2, h3 {
+    font-family: 'Archivo Black', sans-serif;
+    @apply uppercase;
+  }
+  
+  h1 {
+    @apply text-6xl leading-[1.0];
+  }
+  
+  h2 {
+    @apply text-5xl leading-[1.05];
+  }
+  
+  h3 {
+    @apply text-4xl leading-[1.1];
+  }
+  
+  h4 {
+    @apply text-2xl font-semibold leading-[1.2];
+  }
+  
+  /* Reset all border radius */
+  * {
+    border-radius: 0px !important;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-black text-white border-[3px] border-black px-6 py-3 uppercase tracking-widest font-semibold transition-colors;
+  }
+  .btn-primary:hover {
+    @apply bg-white text-black;
+  }
+  .btn-primary:active {
+    @apply bg-black text-white border-[5px];
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-black border-[3px] border-black px-6 py-3 uppercase tracking-widest font-semibold transition-colors;
+  }
+  .btn-secondary:hover {
+    @apply bg-black text-white;
+  }
+  
+  .card {
+    @apply bg-white border-[3px] border-black p-6;
+  }
+  
+  .card-elevated {
+    @apply bg-white border-[5px] border-black p-6;
+  }
+  
+  .input-raw {
+    font-family: 'Space Mono', monospace;
+    @apply bg-[#F0F0F0] text-black border-[3px] border-black px-3 py-2 text-[15px] transition-colors w-full outline-none;
+  }
+  .input-raw:hover {
+    @apply bg-[#E8E8E8];
+  }
+  .input-raw:focus {
+    @apply border-[5px] bg-white;
+  }
+  
+  .label-raw {
+    font-family: 'Archivo Black', sans-serif;
+    @apply text-sm uppercase block mb-1;
+  }
+}
