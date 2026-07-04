@@ -65,7 +65,8 @@ export default function Dashboard() {
         id,
         user_id: user.id,
         nama_blok: newBlockName,
-        created_at: Date.now()
+        created_at: Date.now(),
+        sync_status: 'pending'
       });
       addToast('Blok berhasil ditambahkan', 'success');
       setNewBlockName('');

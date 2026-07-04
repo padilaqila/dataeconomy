@@ -33,7 +33,11 @@ export const syncData = async () => {
         nama_blok: block.nama_blok,
         created_at: new Date(block.created_at).toISOString()
       }, { onConflict: 'id' });
-      if (error) console.error('Sync block error:', error);
+      if (error) {
+        console.error('Sync block error:', error);
+      } else if (block.sync_status !== 'synced') {
+        await BlockDB.update(block.id, { sync_status: 'synced' });
+      }
     }
 
     const respondents = await RespondentDB.getAllPending();
@@ -181,11 +185,13 @@ export const pullData = async () => {
             id: b.id,
             user_id: b.user_id,
             nama_blok: b.nama_blok,
-            created_at: new Date(b.created_at).getTime()
+            created_at: new Date(b.created_at).getTime(),
+            sync_status: 'synced'
           });
         } else {
           await BlockDB.update(b.id, {
-            nama_blok: b.nama_blok
+            nama_blok: b.nama_blok,
+            sync_status: 'synced'
           });
         }
       }
@@ -197,7 +203,7 @@ export const pullData = async () => {
       if (!cloudBlockIds.has(lb.id)) {
         // Block sudah dihapus di cloud — hapus lokal beserta semua child-nya
         const isDeletedLocal = await DeletedRecordDB.isDeleted(lb.id);
-        if (!isDeletedLocal) {
+        if (!isDeletedLocal && lb.sync_status !== 'pending') {
           // Bukan kita yang menghapus secara offline, jadi aman untuk dihapus
           await BlockDB.delete(lb.id);
         }
