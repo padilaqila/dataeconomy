@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ToastContainer from '../components/Toast';
+import Dialog from '../components/Dialog';
 import { ChevronLeft } from 'lucide-react';
 
 export default function MainLayout({ children, title, showBack = false, onBack = null, className = '' }) {
@@ -34,6 +35,7 @@ export default function MainLayout({ children, title, showBack = false, onBack =
       </main>
 
       <ToastContainer />
+      <Dialog />
     </div>
   );
 }

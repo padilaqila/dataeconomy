@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { BlockDB, RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB, AssetsConditionDB } from '../db/db';
+import { BlockDB, RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB, AssetsConditionDB, DeletedRecordDB } from '../db/db';
 import useAuthStore from '../stores/authStore';
 
 export const syncData = async () => {
@@ -9,6 +9,22 @@ export const syncData = async () => {
   if (!user) return { success: false, message: 'Belum login' };
 
   try {
+    // 1. Process deletions first
+    const deletedRecords = await DeletedRecordDB.getAll();
+    for (const del of deletedRecords) {
+      if (del.type === 'respondent') {
+        const { error } = await supabase.from('respondents').delete().eq('id', del.id);
+        if (!error) {
+          await DeletedRecordDB.delete(del.id);
+        }
+      } else if (del.type === 'block') {
+        const { error } = await supabase.from('blocks').delete().eq('id', del.id);
+        if (!error) {
+          await DeletedRecordDB.delete(del.id);
+        }
+      }
+    }
+
     const blocks = await BlockDB.getAllByUser(user.id);
     for (const block of blocks) {
       const { error } = await supabase.from('blocks').upsert({
@@ -61,6 +77,8 @@ export const syncData = async () => {
           await supabase.from('business_details').upsert({
             respondent_id: bus.respondent_id,
             jenis_usaha: bus.jenis_usaha || null,
+            sektor_id: bus.sektor_id || null,
+            sektor_data: bus.sektor_data || null,
             nib: bus.nib || null,
             jenis_barang: bus.jenis_barang || null,
             tahun_mulai: bus.tahun_mulai || null,
@@ -153,6 +171,9 @@ export const pullData = async () => {
 
     if (blocks) {
       for (const b of blocks) {
+        const isDeletedLocal = await DeletedRecordDB.isDeleted(b.id);
+        if (isDeletedLocal) continue;
+
         const existing = await BlockDB.getById(b.id);
         if (!existing) {
           await BlockDB.add({
@@ -171,6 +192,10 @@ export const pullData = async () => {
 
     if (respondents) {
       for (const r of respondents) {
+        // Abaikan data yang sudah dihapus secara lokal (menunggu sync hapus)
+        const isDeletedLocal = await DeletedRecordDB.isDeleted(r.id);
+        if (isDeletedLocal) continue;
+
         const existing = await RespondentDB.getById(r.id);
         // Jangan timpa jika data lokal masih berstatus 'pending' (belum di-push)
         if (!existing || existing.sync_status === 'synced') {

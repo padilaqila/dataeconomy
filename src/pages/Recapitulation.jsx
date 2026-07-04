@@ -4,7 +4,7 @@ import MainLayout from '../layouts/MainLayout';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import useUIStore from '../stores/uiStore';
-import { RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB } from '../db/db';
+import { RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB, DeletedRecordDB } from '../db/db';
 import { Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,7 @@ export default function Recapitulation() {
   const { respondentId } = useParams();
   const navigate = useNavigate();
   const addToast = useUIStore(state => state.addToast);
+  const showConfirm = useUIStore(state => state.showConfirm);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -106,21 +107,34 @@ export default function Recapitulation() {
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus data draft ini? Tindakan ini tidak dapat dibatalkan.')) {
-      try {
-        if (navigator.onLine) {
-          // Hard delete in Supabase if online so it doesn't get pulled back
-          await supabase.from('respondents').delete().eq('id', respondentId);
+  const handleDelete = () => {
+    showConfirm({
+      title: 'Hapus Draf',
+      message: 'Apakah Anda yakin ingin menghapus data draft ini? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Hapus',
+      onConfirm: async () => {
+        try {
+          let deletedInCloud = false;
+          if (navigator.onLine) {
+            // Hard delete in Supabase if online so it doesn't get pulled back
+            const { error } = await supabase.from('respondents').delete().eq('id', respondentId);
+            if (!error) deletedInCloud = true;
+          }
+          
+          if (!deletedInCloud) {
+            // Track deletion for offline sync
+            await DeletedRecordDB.add({ id: respondentId, type: 'respondent', created_at: Date.now() });
+          }
+          
+          await RespondentDB.delete(respondentId);
+          addToast('Data berhasil dihapus', 'success');
+          navigate(`/block/${data.block_id}`);
+        } catch (e) {
+          console.error('Delete error', e);
+          addToast('Gagal menghapus data', 'error');
         }
-        await RespondentDB.delete(respondentId);
-        addToast('Data berhasil dihapus', 'success');
-        navigate(`/block/${data.block_id}`);
-      } catch (e) {
-        console.error('Delete error', e);
-        addToast('Gagal menghapus data', 'error');
       }
-    }
+    });
   };
 
   if (loading || !data) return <MainLayout title="Loading..." />;

@@ -89,30 +89,22 @@ Aplikasi ini **bukan** sistem pelaporan resmi, **bukan** pengganti aplikasi BPS,
 
 ## 6. Rincian Formulir (6 Langkah Wizard)
 
-Field mengikuti form resmi kuesioner BPS apa adanya — **tidak dipecah jadi template berbeda per jenis usaha** (form resmi BPS sendiri generik lintas sektor).
+> **[DEVIASI V2.1 - WIZARD DINAMIS]** Berdasarkan instruksi lanjutan, **Step 2 (Profil Usaha)** telah dirombak menjadi **Wizard 9 Sektor Dinamis**. Alih-alih menggunakan 1 format generik BPS (Rincian 26), aplikasi kini meminta user memilih sektor usaha (Retail, Kuliner, Jasa, Perikanan, dsb) dan mengisi data spesifik (misal: luas lahan, jumlah ternak). Sistem akan mengkalkulasi otomatis nilai pengeluaran bulanan dan omset bulanan yang kemudian dimasukkan ke dalam format rekap BPS. Data spesifik sektor disimpan dalam format JSONB `sektor_data`.
 
 ### Langkah 1: Identitas & Anggota Keluarga
 - No Bangunan, No Urut KK, Nomor KK (16 digit), Nama Kepala Keluarga, Alamat, Jumlah Penghuni
 - Tabel dinamis Pendapatan Keluarga: No, Nama, Pekerjaan, Gaji, Ijarah, Rekening, Status Tinggal (+Tambah Anggota)
 
-### Langkah 2: Profil & Pengeluaran Usaha
-- Identitas Usaha: Jenis Usaha, Jenis Barang, Tahun Mulai, NIB, Alamat Usaha
-- Pengeluaran Usaha (semua field NumPad, satuan **/bulan**):
-  - Total Upah (Pengeluaran Usaha)
-  - Biaya Produksi
-  - Biaya Pembelian Barang Terjual
-  - Operasional (Listrik, BBM, Air, Gas, Sewa lahan, transport)
-  - Non-Operasional (Perawatan, dll)
-- **Panel Bantu Hitung (collapsible, opsional, UI-only — lihat Section 7)**
-- Rumus: `Total Pengeluaran Usaha (Bulan) = SUM(semua field di atas)`
+### Langkah 2: Profil Usaha & Pengeluaran (Dinamis 9 Sektor)
+- Identitas Usaha: Pemilihan **Kategori Sektor Usaha** (1 dari 9 Sektor), Jenis Barang, Tahun Mulai, NIB, Alamat Usaha.
+- Rincian Finansial Sektor: Input dinamis menyesuaikan sektor (misal: Retail butuh Omset/hari & Kulakan; Pertanian butuh Luas Lahan & Biaya Pupuk).
+- **Estimasi Otomatis:** Sistem langsung menghitung Total Pengeluaran Bulanan dan Pemasukan (Omset) Bulanan berdasarkan rumus sektor.
 
 ### Langkah 3: Pendapatan & Aset Usaha
-- Nilai Penjualan & Jasa: input **/bulan** DAN **/tahun** (2 field terpisah, sesuai form resmi)
-  - Field /tahun **auto-hitung** dari /bulan × 12 secara real-time
-  - Field /tahun **bisa diedit manual** (override) — kalau diubah manual lalu /bulan diubah lagi setelahnya, /tahun ikut ter-recalculate ulang menimpa nilai manual (tanpa flag/badge kompleks). Tambahkan 1 baris teks kecil di bawah field: *"Nilai ini otomatis mengikuti /bulan × 12. Anda bisa mengubahnya jika berbeda."*
-- Pendapatan Lainnya: sama, /bulan & /tahun
+- **27.a Nilai produksi/pendapatan utama:** Ditampilkan otomatis (Read-Only) berdasarkan kalkulasi dari Step 2. (Nilai /bulan dan /tahun).
+- **27.b Pendapatan Lainnya:** Input manual /bulan dan /tahun.
 - Total Nilai Penjualan (A+B) /tahun
-- Aset Usaha: Nilai Aset Tanah & Bangunan, Nilai Aset Selain Tanah, Total Aset
+- Aset Usaha: Total Aset Usaha (Perkiraan)
 
 ### Langkah 4: Pengeluaran Makan Keluarga (D.1)
 - Beras, Sayuran, Lauk Pauk, Minyak Goreng, Air Minum, Lainnya

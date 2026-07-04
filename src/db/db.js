@@ -8,7 +8,8 @@ db.version(1).stores({
   family_members: 'id, respondent_id, nama, pekerjaan, status_tinggal',
   business_details: 'respondent_id, jenis_usaha, nib',
   family_expenses: 'respondent_id', 
-  assets_conditions: 'respondent_id'
+  assets_conditions: 'respondent_id',
+  deleted_records: 'id, type, created_at'
 });
 
 // Version 2: Migrate pendapatan fields to match BPS R27 structure
@@ -40,11 +41,36 @@ db.version(2).stores({
   });
 });
 
+// Version 3: Add deleted_records for offline deletion sync
+db.version(3).stores({
+  blocks: 'id, user_id, nama_blok, created_at',
+  respondents: 'id, block_id, no_bangunan, no_urut_kk, nomor_kk, nama_kpl_keluarga, sync_status, updated_at',
+  family_members: 'id, respondent_id, nama, pekerjaan, status_tinggal',
+  business_details: 'respondent_id, jenis_usaha, nib',
+  family_expenses: 'respondent_id', 
+  assets_conditions: 'respondent_id',
+  deleted_records: 'id, type, created_at' // type: 'respondent' | 'block'
+});
+
 export const BlockDB = {
   add: async (block) => await db.blocks.add(block),
   getAllByUser: async (userId) => await db.blocks.where('user_id').equals(userId).toArray(),
   getById: async (id) => await db.blocks.get(id),
-  delete: async (id) => await db.blocks.delete(id)
+  update: async (id, changes) => await db.blocks.update(id, changes),
+  delete: async (id) => {
+    // Delete associated respondents first to maintain referential integrity locally
+    const respondents = await db.respondents.where('block_id').equals(id).toArray();
+    for (const res of respondents) {
+      await db.transaction('rw', db.respondents, db.family_members, db.business_details, db.family_expenses, db.assets_conditions, async () => {
+        await db.respondents.delete(res.id);
+        await db.family_members.where('respondent_id').equals(res.id).delete();
+        await db.business_details.delete(res.id);
+        await db.family_expenses.delete(res.id);
+        await db.assets_conditions.delete(res.id);
+      });
+    }
+    await db.blocks.delete(id);
+  }
 };
 
 export const RespondentDB = {
@@ -85,4 +111,14 @@ export const FamilyExpenseDB = {
 export const AssetsConditionDB = {
   put: async (asset) => await db.assets_conditions.put(asset),
   get: async (respondentId) => await db.assets_conditions.get(respondentId)
+};
+
+export const DeletedRecordDB = {
+  add: async (record) => await db.deleted_records.put(record),
+  getAll: async () => await db.deleted_records.toArray(),
+  delete: async (id) => await db.deleted_records.delete(id),
+  isDeleted: async (id) => {
+    const record = await db.deleted_records.get(id);
+    return !!record;
+  }
 };

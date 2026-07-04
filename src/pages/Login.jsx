@@ -12,7 +12,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
-  const [showDeviceDialog, setShowDeviceDialog] = useState(false);
   
   const navigate = useNavigate();
   const { signIn, signUp, deviceId } = useAuthStore();
@@ -31,49 +30,17 @@ export default function Login() {
         const { data, error } = await signIn(email, password);
         if (error) throw error;
         
-        // Cek Device ID
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('current_device_id')
-          .eq('id', data.user.id)
-          .single();
-          
-        if (userData && userData.current_device_id && userData.current_device_id !== deviceId) {
-          setShowDeviceDialog(true);
-          setLoading(false);
-          return;
-        }
-        
         addToast('Login berhasil', 'success');
         navigate('/dashboard');
       }
     } catch (error) {
       addToast(error.message || 'Terjadi kesalahan', 'error');
     } finally {
-      if (!showDeviceDialog) setLoading(false);
-    }
-  };
-
-  const handleDeviceMove = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('users')
-          .update({ current_device_id: deviceId })
-          .eq('id', user.id);
-        
-        addToast('Device berhasil dipindahkan', 'success');
-        setShowDeviceDialog(false);
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      addToast('Gagal memindahkan device', 'error');
-    } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <MainLayout title={isRegister ? "Daftar Akun" : "Login Petugas"} className="flex flex-col justify-center">
@@ -115,28 +82,6 @@ export default function Login() {
           </div>
         </form>
       </div>
-
-      {showDeviceDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white border-[5px] border-black p-6 max-w-sm w-full shadow-none">
-            <h2 className="font-['Archivo_Black'] uppercase text-xl mb-4">Pindah Device?</h2>
-            <p className="font-['Work_Sans'] text-[15px] mb-6">
-              Akun ini aktif di device lain. Pindahkan ke device ini? Sesi di device lama akan logout otomatis.
-            </p>
-            <div className="flex flex-col space-y-3">
-              <Button onClick={handleDeviceMove} disabled={loading}>
-                Ya, Pindahkan Sesi
-              </Button>
-              <Button variant="secondary" onClick={() => {
-                setShowDeviceDialog(false);
-                supabase.auth.signOut();
-              }}>
-                Batal
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </MainLayout>
   );
 }

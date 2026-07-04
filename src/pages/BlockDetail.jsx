@@ -5,8 +5,9 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import Chip from '../components/Chip';
 import useUIStore from '../stores/uiStore';
-import { BlockDB, RespondentDB } from '../db/db';
-import { Clock, CheckCircle2 } from 'lucide-react';
+import { BlockDB, RespondentDB, DeletedRecordDB } from '../db/db';
+import { Clock, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function BlockDetail() {
   const { id } = useParams();
@@ -14,6 +15,8 @@ export default function BlockDetail() {
   const [block, setBlock] = useState(null);
   const [respondents, setRespondents] = useState([]);
   const addToast = useUIStore(state => state.addToast);
+  const showPrompt = useUIStore(state => state.showPrompt);
+  const showConfirm = useUIStore(state => state.showConfirm);
 
   useEffect(() => {
     loadData();
@@ -52,8 +55,64 @@ export default function BlockDetail() {
     }
   };
 
+  const handleEditBlock = () => {
+    showPrompt({
+      title: 'Ubah Nama Blok',
+      message: 'Masukkan nama blok baru:',
+      defaultValue: block.nama_blok,
+      onConfirm: async (newName) => {
+        if (newName && newName.trim() !== '' && newName !== block.nama_blok) {
+          try {
+            await BlockDB.update(id, { nama_blok: newName });
+            setBlock({ ...block, nama_blok: newName });
+            addToast('Nama blok berhasil diubah', 'success');
+          } catch (e) {
+            addToast('Gagal mengubah nama blok', 'error');
+          }
+        }
+      }
+    });
+  };
+
+  const handleDeleteBlock = () => {
+    showConfirm({
+      title: 'Hapus Blok Sensus',
+      message: 'PERINGATAN: Menghapus blok ini akan menghapus SEMUA responden di dalamnya. Apakah Anda yakin?',
+      confirmText: 'Ya, Hapus',
+      onConfirm: async () => {
+        try {
+          let deletedInCloud = false;
+          if (navigator.onLine) {
+            const { error } = await supabase.from('blocks').delete().eq('id', id);
+            if (!error) deletedInCloud = true;
+          }
+          
+          if (!deletedInCloud) {
+            await DeletedRecordDB.add({ id, type: 'block', created_at: Date.now() });
+          }
+          
+          await BlockDB.delete(id);
+          addToast('Blok berhasil dihapus', 'success');
+          navigate('/dashboard');
+        } catch (e) {
+          console.error('Delete block error', e);
+          addToast('Gagal menghapus blok', 'error');
+        }
+      }
+    });
+  };
+
   return (
     <MainLayout title={block ? `BLOK ${block.nama_blok}` : 'Detail Blok'} showBack={true} onBack={() => navigate('/dashboard')}>
+      <div className="flex space-x-2 mb-4">
+        <Button variant="secondary" className="flex-1 flex justify-center items-center" onClick={handleEditBlock}>
+          <Edit2 size={16} className="mr-2" /> Ubah Nama
+        </Button>
+        <Button variant="destructive" className="flex-1 flex justify-center items-center" onClick={handleDeleteBlock}>
+          <Trash2 size={16} className="mr-2" /> Hapus Blok
+        </Button>
+      </div>
+
       <Button className="w-full mb-6" onClick={handleAddRespondent}>
         + Tambah Responden
       </Button>
