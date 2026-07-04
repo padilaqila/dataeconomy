@@ -11,6 +11,35 @@ db.version(1).stores({
   assets_conditions: 'respondent_id'
 });
 
+// Version 2: Migrate pendapatan fields to match BPS R27 structure
+db.version(2).stores({
+  blocks: 'id, user_id, nama_blok, created_at',
+  respondents: 'id, block_id, no_bangunan, no_urut_kk, nomor_kk, nama_kpl_keluarga, sync_status, updated_at',
+  family_members: 'id, respondent_id, nama, pekerjaan, status_tinggal',
+  business_details: 'respondent_id, jenis_usaha, nib',
+  family_expenses: 'respondent_id', 
+  assets_conditions: 'respondent_id'
+}).upgrade(tx => {
+  return tx.table('business_details').toCollection().modify(record => {
+    // Migrate old pendapatan_total_bulan → pendapatan_barang_jasa_bulan (R27.a)
+    if (record.pendapatan_total_bulan !== undefined && record.pendapatan_barang_jasa_bulan === undefined) {
+      record.pendapatan_barang_jasa_bulan = record.pendapatan_total_bulan;
+    }
+    if (record.pendapatan_total_tahun !== undefined && record.pendapatan_barang_jasa_tahun === undefined) {
+      record.pendapatan_barang_jasa_tahun = record.pendapatan_total_tahun;
+    }
+    // Initialize new R27.b fields
+    if (record.pendapatan_lainnya_bulan === undefined) {
+      record.pendapatan_lainnya_bulan = 0;
+    }
+    if (record.pendapatan_lainnya_tahun === undefined) {
+      record.pendapatan_lainnya_tahun = 0;
+    }
+    // Calculate R27.c total
+    record.total_pendapatan_tahun = (record.pendapatan_barang_jasa_tahun || 0) + (record.pendapatan_lainnya_tahun || 0);
+  });
+});
+
 export const BlockDB = {
   add: async (block) => await db.blocks.add(block),
   getAllByUser: async (userId) => await db.blocks.where('user_id').equals(userId).toArray(),

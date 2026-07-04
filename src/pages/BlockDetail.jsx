@@ -53,7 +53,7 @@ export default function BlockDetail() {
   };
 
   return (
-    <MainLayout title={block ? `BLOK ${block.nama_blok}` : 'Detail Blok'} showBack={true}>
+    <MainLayout title={block ? `BLOK ${block.nama_blok}` : 'Detail Blok'} showBack={true} onBack={() => navigate('/dashboard')}>
       <Button className="w-full mb-6" onClick={handleAddRespondent}>
         + Tambah Responden
       </Button>

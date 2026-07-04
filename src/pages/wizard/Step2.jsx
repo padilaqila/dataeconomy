@@ -5,7 +5,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Select from '../../components/Select';
 import { BusinessDetailDB } from '../../db/db';
-import { Calculator } from 'lucide-react';
+import { Calculator, AlertTriangle } from 'lucide-react';
 
 export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
   const [data, setData] = useState({
@@ -113,6 +113,11 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
     onNext(data, saveFunction);
   };
 
+  const totalPengeluaran = (parseInt(data.upah||0) + parseInt(data.biaya_produksi||0) + parseInt(data.biaya_barang_terjual||0) + parseInt(data.operasional||0) + parseInt(data.non_operasional||0));
+
+  // Validasi BPS: upah wajib > 50.000 jika ada pekerja dibayar
+  const showUpahWarning = parseInt(data.upah || 0) > 0 && parseInt(data.upah || 0) < 50000;
+
   return (
     <form onSubmit={handleSubmit}>
       <Card className="mb-6">
@@ -125,13 +130,26 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
       </Card>
 
       <Card className="mb-6">
-        <h4 className="font-['Archivo_Black'] uppercase mb-4 text-xl">Pengeluaran Usaha (Per Bulan)</h4>
+        <h4 className="font-['Archivo_Black'] uppercase mb-2 text-xl">Rincian 26 — Pengeluaran Usaha</h4>
+        <p className="font-['Space_Mono'] text-[12px] text-gray-600 mb-6">Satuan: per bulan. Isi sesuai Rincian 26 kuesioner BPS.</p>
         
-        <CurrencyInput label="Total Upah Pekerja" value={data.upah} onChange={e => handleChange('upah', e.target.value)} />
+        <CurrencyInput 
+          label="26.a. Total upah dan gaji, serta jaminan sosial pegawai" 
+          value={data.upah} 
+          onChange={e => handleChange('upah', e.target.value)} 
+        />
+        {showUpahWarning && (
+          <div className="flex items-start gap-2 bg-[#FFF3E0] border-[3px] border-[#FF6600] p-3 mb-4 -mt-2">
+            <AlertTriangle size={18} className="text-[#FF6600] flex-shrink-0 mt-0.5" />
+            <p className="font-['Space_Mono'] text-[12px] text-[#FF6600]">
+              Nilai R26a wajib &gt; Rp 50.000 jika ada pekerja dibayar (R24a2 &gt; 0)
+            </p>
+          </div>
+        )}
         
         <div className="relative mb-4">
           <div className="flex justify-between items-end mb-1">
-            <label className="font-['Archivo_Black'] text-sm uppercase text-black">Biaya Produksi</label>
+            <label className="font-['Archivo_Black'] text-sm uppercase text-black">26.b. Biaya produksi</label>
             <button type="button" onClick={() => setShowHelper(!showHelper)} className="text-[12px] font-['Space_Mono'] underline text-[#0000FF] flex items-center">
               <Calculator size={14} className="mr-1" /> Panel Musiman
             </button>
@@ -184,15 +202,15 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
           />
         </div>
         
-        <CurrencyInput label="Biaya Pembelian Barang Terjual" value={data.biaya_barang_terjual} onChange={e => handleChange('biaya_barang_terjual', e.target.value)} />
-        <CurrencyInput label="Operasional (Listrik, BBM, Air, dll)" value={data.operasional} onChange={e => handleChange('operasional', e.target.value)} />
-        <CurrencyInput label="Non-Operasional (Perawatan, dll)" value={data.non_operasional} onChange={e => handleChange('non_operasional', e.target.value)} />
+        <CurrencyInput label="26.c. Biaya pembelian barang dagangan" value={data.biaya_barang_terjual} onChange={e => handleChange('biaya_barang_terjual', e.target.value)} />
+        <CurrencyInput label="26.d. Biaya operasional (air, listrik, gas, internet, pulsa, pemeliharaan, biaya angkutan, dll.)" value={data.operasional} onChange={e => handleChange('operasional', e.target.value)} />
+        <CurrencyInput label="26.e. Biaya non-operasional" value={data.non_operasional} onChange={e => handleChange('non_operasional', e.target.value)} />
         
-        <div className="bg-black text-white p-4 mt-6 border-[3px] border-black flex justify-between items-center font-['Space_Mono']">
-          <span className="font-bold">TOTAL / BULAN</span>
-          <span className="text-xl">
-            Rp {(parseInt(data.upah||0) + parseInt(data.biaya_produksi||0) + parseInt(data.biaya_barang_terjual||0) + parseInt(data.operasional||0) + parseInt(data.non_operasional||0)).toLocaleString('id-ID')}
-          </span>
+        <div className="bg-black text-white p-4 mt-6 border-[3px] border-black">
+          <p className="font-['Archivo_Black'] text-sm uppercase mb-1">26.f. Total pengeluaran (a+b+c+d+e)</p>
+          <p className="font-['Space_Mono'] text-xl text-right">
+            Rp {totalPengeluaran.toLocaleString('id-ID')}
+          </p>
         </div>
       </Card>
 

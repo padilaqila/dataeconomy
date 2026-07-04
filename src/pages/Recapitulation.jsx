@@ -5,7 +5,7 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import useUIStore from '../stores/uiStore';
 import { RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB } from '../db/db';
-import { Copy } from 'lucide-react';
+import { Copy, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function Recapitulation() {
   const { respondentId } = useParams();
@@ -14,6 +14,9 @@ export default function Recapitulation() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [showR26, setShowR26] = useState(true);
+  const [showR27, setShowR27] = useState(true);
+  const [showKeluarga, setShowKeluarga] = useState(true);
 
   useEffect(() => {
     loadRecap();
@@ -38,9 +41,23 @@ export default function Recapitulation() {
       const totalGajiIjarah = gaji + ijarah;
 
       const business = await BusinessDetailDB.get(respondentId) || {};
-      const pendapatanUsaha = parseInt(business.pendapatan_total_bulan) || 0;
-      const pengeluaranUsaha = parseInt(business.pengeluaran_usaha_bulan) || 0;
-      const labaUsaha = pendapatanUsaha - pengeluaranUsaha;
+      
+      // R26 fields
+      const upah = parseInt(business.upah) || 0;
+      const biayaProduksi = parseInt(business.biaya_produksi) || 0;
+      const biayaBarangTerjual = parseInt(business.biaya_barang_terjual) || 0;
+      const operasional = parseInt(business.operasional) || 0;
+      const nonOperasional = parseInt(business.non_operasional) || 0;
+      const pengeluaranUsaha = parseInt(business.pengeluaran_usaha_bulan) || (upah + biayaProduksi + biayaBarangTerjual + operasional + nonOperasional);
+
+      // R27 fields (new structure)
+      const pendapatanBarangJasaTahun = parseInt(business.pendapatan_barang_jasa_tahun) || 0;
+      const pendapatanLainnyaTahun = parseInt(business.pendapatan_lainnya_tahun) || 0;
+      const totalPendapatanTahun = parseInt(business.total_pendapatan_tahun) || (pendapatanBarangJasaTahun + pendapatanLainnyaTahun);
+
+      // Backward compat: use pendapatan_total_bulan if new fields not available
+      const pendapatanUsahaBulan = parseInt(business.pendapatan_total_bulan) || Math.round(totalPendapatanTahun / 12);
+      const labaUsaha = pendapatanUsahaBulan - pengeluaranUsaha;
 
       const expense = await FamilyExpenseDB.get(respondentId) || {};
       const pengeluaranMakan = parseInt(expense.total_makanan_bulan) || 0;
@@ -52,8 +69,19 @@ export default function Recapitulation() {
       setData({
         block_id: res.block_id,
         nama_kpl_keluarga: res.nama_kpl_keluarga,
-        pendapatanUsaha,
+        // R26 detail
+        upah,
+        biayaProduksi,
+        biayaBarangTerjual,
+        operasional,
+        nonOperasional,
         pengeluaranUsaha,
+        // R27 detail
+        pendapatanBarangJasaTahun,
+        pendapatanLainnyaTahun,
+        totalPendapatanTahun,
+        // Kalkulasi
+        pendapatanUsahaBulan,
         labaUsaha,
         totalGajiIjarah,
         pengeluaranMakan,
@@ -93,18 +121,29 @@ export default function Recapitulation() {
 
   const RecapItem = ({ label, value, isBold = false }) => (
     <div className={`flex justify-between items-center py-3 border-b-2 border-dashed border-gray-300 last:border-0 ${isBold ? 'font-bold text-lg border-b-[3px] border-black border-solid' : ''}`}>
-      <span className="font-['Space_Mono']">{label}</span>
-      <div className="flex items-center space-x-3">
-        <span className="font-['Space_Mono']">Rp {value.toLocaleString('id-ID')}</span>
+      <span className="font-['Space_Mono'] text-[13px] flex-1 pr-3">{label}</span>
+      <div className="flex items-center space-x-2 flex-shrink-0">
+        <span className="font-['Space_Mono'] text-[13px]">Rp {value.toLocaleString('id-ID')}</span>
         <button 
           onClick={() => handleCopy(value)}
-          className="bg-black text-white p-2 hover:bg-gray-800 active:scale-95 transition-transform"
+          className="bg-black text-white p-2 hover:bg-gray-800 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
           title="Quick Copy"
         >
           <Copy size={16} />
         </button>
       </div>
     </div>
+  );
+
+  const SectionHeader = ({ title, isOpen, onToggle }) => (
+    <button 
+      type="button"
+      onClick={onToggle} 
+      className="flex justify-between items-center w-full font-['Archivo_Black'] uppercase text-xl border-b-[3px] border-black pb-2 mb-4"
+    >
+      <span>{title}</span>
+      {isOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+    </button>
   );
 
   return (
@@ -126,32 +165,60 @@ export default function Recapitulation() {
         </div>
       </Card>
 
+      {/* RINCIAN 26 — PENGELUARAN */}
       <Card className="mb-6">
-        <h4 className="font-['Archivo_Black'] uppercase mb-4 text-xl border-b-[3px] border-black pb-2">Usaha</h4>
-        <RecapItem label="Total Pendapatan" value={data.pendapatanUsaha} />
-        <RecapItem label="Total Pengeluaran" value={data.pengeluaranUsaha} />
-        <RecapItem label="Laba Bersih Usaha" value={data.labaUsaha} isBold={true} />
+        <SectionHeader title="Rincian 26 — Pengeluaran" isOpen={showR26} onToggle={() => setShowR26(!showR26)} />
+        {showR26 && (
+          <>
+            <RecapItem label="26.a. Total upah & gaji" value={data.upah} />
+            <RecapItem label="26.b. Biaya produksi" value={data.biayaProduksi} />
+            <RecapItem label="26.c. Biaya barang dagangan" value={data.biayaBarangTerjual} />
+            <RecapItem label="26.d. Biaya operasional" value={data.operasional} />
+            <RecapItem label="26.e. Biaya non-operasional" value={data.nonOperasional} />
+            <RecapItem label="26.f. TOTAL PENGELUARAN (a+b+c+d+e)" value={data.pengeluaranUsaha} isBold={true} />
+          </>
+        )}
       </Card>
 
+      {/* RINCIAN 27 — PENDAPATAN/PENJUALAN */}
       <Card className="mb-6">
-        <h4 className="font-['Archivo_Black'] uppercase mb-4 text-xl border-b-[3px] border-black pb-2">Keluarga</h4>
-        <RecapItem label="Gaji & Ijarah Anggota" value={data.totalGajiIjarah} />
-        <RecapItem label="Pengeluaran Makan" value={data.pengeluaranMakan} />
-        <RecapItem label="Pengeluaran Non-Makan" value={data.pengeluaranNonMakan} />
-        <RecapItem label="Total Peng. Keluarga" value={data.totalPengeluaranKeluarga} isBold={true} />
+        <SectionHeader title="Rincian 27 — Pendapatan" isOpen={showR27} onToggle={() => setShowR27(!showR27)} />
+        {showR27 && (
+          <>
+            <RecapItem label="27.a. Penjualan barang & jasa / tahun" value={data.pendapatanBarangJasaTahun} />
+            <RecapItem label="27.b. Pendapatan lainnya / tahun" value={data.pendapatanLainnyaTahun} />
+            <RecapItem label="27.c. TOTAL PENDAPATAN (a+b) / tahun" value={data.totalPendapatanTahun} isBold={true} />
+          </>
+        )}
       </Card>
 
+      {/* KALKULASI KELUARGA */}
+      <Card className="mb-6">
+        <SectionHeader title="Keluarga" isOpen={showKeluarga} onToggle={() => setShowKeluarga(!showKeluarga)} />
+        {showKeluarga && (
+          <>
+            <RecapItem label="Gaji & Ijarah Anggota" value={data.totalGajiIjarah} />
+            <RecapItem label="Pengeluaran Makan" value={data.pengeluaranMakan} />
+            <RecapItem label="Pengeluaran Non-Makan" value={data.pengeluaranNonMakan} />
+            <RecapItem label="TOTAL PENG. KELUARGA / bulan" value={data.totalPengeluaranKeluarga} isBold={true} />
+          </>
+        )}
+      </Card>
+
+      {/* SURPLUS / DEFISIT */}
       <Card className={`mb-6 border-[5px] ${data.surplusDefisit >= 0 ? 'border-[#008000] bg-[#E5F2E5]' : 'border-[#FF0000] bg-[#FFE5E5]'}`}>
-        <h4 className="font-['Archivo_Black'] uppercase mb-4 text-xl border-b-[3px] border-black pb-2">Surplus / Defisit</h4>
-        <div className="flex justify-between items-center mt-4">
-          <span className="font-['Archivo_Black'] text-xl md:text-2xl">TOTAL</span>
+        <h4 className="font-['Archivo_Black'] uppercase mb-2 text-xl border-b-[3px] border-black pb-2">Kalkulasi Akhir</h4>
+        <RecapItem label="Laba Bersih Usaha / bulan" value={data.labaUsaha} />
+        <RecapItem label="Total Peng. Keluarga / bulan" value={data.totalPengeluaranKeluarga} />
+        <div className="flex justify-between items-center mt-4 pt-4 border-t-[3px] border-black">
+          <span className="font-['Archivo_Black'] text-lg md:text-xl">SURPLUS / DEFISIT</span>
           <div className="flex items-center space-x-3">
-            <span className={`font-['Archivo_Black'] text-xl md:text-2xl ${data.surplusDefisit >= 0 ? 'text-[#008000]' : 'text-[#FF0000]'}`}>
+            <span className={`font-['Archivo_Black'] text-lg md:text-xl ${data.surplusDefisit >= 0 ? 'text-[#008000]' : 'text-[#FF0000]'}`}>
               Rp {data.surplusDefisit.toLocaleString('id-ID')}
             </span>
             <button 
               onClick={() => handleCopy(data.surplusDefisit)}
-              className="bg-black text-white p-3 hover:bg-gray-800 active:scale-95 transition-transform"
+              className="bg-black text-white p-3 hover:bg-gray-800 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <Copy size={20} />
             </button>

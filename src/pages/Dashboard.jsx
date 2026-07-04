@@ -65,7 +65,10 @@ export default function Dashboard() {
     <MainLayout title="Daftar Blok" className="flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-['Archivo_Black'] text-xl md:text-2xl uppercase">Blok Sensus</h3>
-        <Button size="small" onClick={() => signOut()}>Logout</Button>
+        <div className="flex space-x-2">
+          <Button size="small" variant="secondary" onClick={() => navigate('/sync')}>Sync</Button>
+          <Button size="small" onClick={() => signOut()}>Logout</Button>
+        </div>
       </div>
 
       {!showAdd ? (
