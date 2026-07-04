@@ -6,6 +6,7 @@ import Card from '../components/Card';
 import useUIStore from '../stores/uiStore';
 import { RespondentDB, FamilyMemberDB, BusinessDetailDB, FamilyExpenseDB } from '../db/db';
 import { Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Recapitulation() {
   const { respondentId } = useParams();
@@ -108,10 +109,15 @@ export default function Recapitulation() {
   const handleDelete = async () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus data draft ini? Tindakan ini tidak dapat dibatalkan.')) {
       try {
+        if (navigator.onLine) {
+          // Hard delete in Supabase if online so it doesn't get pulled back
+          await supabase.from('respondents').delete().eq('id', respondentId);
+        }
         await RespondentDB.delete(respondentId);
         addToast('Data berhasil dihapus', 'success');
         navigate(`/block/${data.block_id}`);
       } catch (e) {
+        console.error('Delete error', e);
         addToast('Gagal menghapus data', 'error');
       }
     }
