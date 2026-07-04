@@ -99,6 +99,15 @@ export default function Payment() {
           <p className="font-['Space_Mono'] text-xs text-gray-500 mt-4">
             *Pembayaran diproses aman melalui Midtrans
           </p>
+          <button 
+            onClick={async () => {
+              await useAuthStore.getState().signOut();
+              navigate('/login');
+            }}
+            className="mt-6 text-sm underline text-gray-600 hover:text-black font-['Work_Sans'] cursor-pointer"
+          >
+            Salah akun? Keluar
+          </button>
         </Card>
       </div>
     </MainLayout>
