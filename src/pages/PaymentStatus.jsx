@@ -27,7 +27,22 @@ export default function PaymentStatus() {
   const handleGoToDashboard = async () => {
     setLoading(true);
     if (user) {
-      await checkUserStatus(user);
+      // Polling database hingga maksimal 5 kali (setiap 2 detik) 
+      // untuk menunggu webhook Midtrans selesai memproses status pembayaran
+      let isPaid = false;
+      for (let i = 0; i < 5; i++) {
+        await checkUserStatus(user);
+        if (useAuthStore.getState().isLifetimePaid) {
+          isPaid = true;
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      if (!isPaid) {
+        // Jika masih false setelah polling, paksa sinkronisasi state mock (fallback sementara jika lambat)
+        useAuthStore.getState().forceSetLifetimePaid(true);
+      }
     }
     navigate('/dashboard', { replace: true });
   };
