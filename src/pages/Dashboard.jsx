@@ -78,13 +78,20 @@ export default function Dashboard() {
 
   return (
     <MainLayout title="Daftar Blok" className="flex flex-col">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h3 className="font-['Archivo_Black'] text-xl md:text-2xl uppercase">Blok Sensus</h3>
         <div className="flex space-x-2">
           <Button size="small" variant="secondary" onClick={() => navigate('/sync')}>Sync</Button>
           <Button size="small" onClick={() => signOut()}>Logout</Button>
         </div>
       </div>
+
+      {user?.email && (
+        <div className="mb-6 px-4 py-2 border-[3px] border-black bg-[#F0F0F0] text-sm font-['Space_Mono'] flex items-center overflow-hidden">
+          <span className="font-bold mr-2 uppercase">Profil:</span> 
+          <span className="truncate">{user.email}</span>
+        </div>
+      )}
 
       {!showAdd ? (
         <Button className="w-full mb-6" onClick={() => setShowAdd(true)}>

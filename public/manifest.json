@@ -1,0 +1,17 @@
+{
+  "name": "Kalkulator Sensus 2026",
+  "short_name": "Sensus 26",
+  "description": "Aplikasi pendataan Kalkulator Sensus Ekonomi 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
