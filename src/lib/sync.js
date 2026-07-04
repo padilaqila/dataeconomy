@@ -51,6 +51,7 @@ export const syncData = async () => {
             pekerjaan: m.pekerjaan,
             gaji: m.gaji,
             ijarah: m.ijarah,
+            rekening: m.rekening || 0,
             status_tinggal: m.status_tinggal
           })), { onConflict: 'id' });
         }

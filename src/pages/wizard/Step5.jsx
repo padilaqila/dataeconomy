@@ -62,7 +62,8 @@ export default function Step5({ respondentId, onNext, setDirty, isEditMode }) {
       await FamilyExpenseDB.put({
         ...existing,
         rincian_non_makan: JSON.stringify(data),
-        total_non_makanan_bulan: totalNonMakan
+        total_non_makanan_bulan: totalNonMakan,
+        total_non_makan_bulan: totalNonMakan
       });
     };
 

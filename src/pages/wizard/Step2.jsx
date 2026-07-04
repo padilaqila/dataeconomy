@@ -41,12 +41,11 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
         jenis_barang: b.jenis_barang || '',
         tahun_mulai: b.tahun_mulai || '',
         nib: b.nib || '',
-        alamat_usaha: b.alamat_usaha || '',
-        upah: b.upah || '',
-        biaya_produksi: b.biaya_produksi || '',
-        biaya_barang_terjual: b.biaya_barang_terjual || '',
-        operasional: b.operasional || '',
-        non_operasional: b.non_operasional || ''
+        upah: b.total_upah_bulan || b.upah || '',
+        biaya_produksi: b.biaya_produksi_bulan || b.biaya_produksi || '',
+        biaya_barang_terjual: b.biaya_pembelian_barang_bulan || b.biaya_barang_terjual || '',
+        operasional: b.operasional_bulan || b.operasional || '',
+        non_operasional: b.non_operasional_bulan || b.non_operasional || ''
       });
     }
   };
@@ -102,11 +101,17 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
         tahun_mulai: data.tahun_mulai,
         alamat_usaha: data.alamat_usaha,
         upah,
+        total_upah_bulan: upah,
         biaya_produksi: produksi,
+        biaya_produksi_bulan: produksi,
         biaya_barang_terjual: terjual,
+        biaya_pembelian_barang_bulan: terjual,
         operasional: ops,
+        operasional_bulan: ops,
         non_operasional: non_ops,
-        pengeluaran_usaha_bulan: total
+        non_operasional_bulan: non_ops,
+        pengeluaran_usaha_bulan: total,
+        total_pengeluaran_usaha_bulan: total
       });
     };
 

@@ -43,12 +43,12 @@ export default function Recapitulation() {
       const business = await BusinessDetailDB.get(respondentId) || {};
       
       // R26 fields
-      const upah = parseInt(business.upah) || 0;
-      const biayaProduksi = parseInt(business.biaya_produksi) || 0;
-      const biayaBarangTerjual = parseInt(business.biaya_barang_terjual) || 0;
-      const operasional = parseInt(business.operasional) || 0;
-      const nonOperasional = parseInt(business.non_operasional) || 0;
-      const pengeluaranUsaha = parseInt(business.pengeluaran_usaha_bulan) || (upah + biayaProduksi + biayaBarangTerjual + operasional + nonOperasional);
+      const upah = parseInt(business.total_upah_bulan || business.upah) || 0;
+      const biayaProduksi = parseInt(business.biaya_produksi_bulan || business.biaya_produksi) || 0;
+      const biayaBarangTerjual = parseInt(business.biaya_pembelian_barang_bulan || business.biaya_barang_terjual) || 0;
+      const operasional = parseInt(business.operasional_bulan || business.operasional) || 0;
+      const nonOperasional = parseInt(business.non_operasional_bulan || business.non_operasional) || 0;
+      const pengeluaranUsaha = parseInt(business.total_pengeluaran_usaha_bulan || business.pengeluaran_usaha_bulan) || (upah + biayaProduksi + biayaBarangTerjual + operasional + nonOperasional);
 
       // R27 fields (new structure)
       const pendapatanBarangJasaTahun = parseInt(business.pendapatan_barang_jasa_tahun) || 0;
@@ -60,8 +60,8 @@ export default function Recapitulation() {
       const labaUsaha = pendapatanUsahaBulan - pengeluaranUsaha;
 
       const expense = await FamilyExpenseDB.get(respondentId) || {};
-      const pengeluaranMakan = parseInt(expense.total_makanan_bulan) || 0;
-      const pengeluaranNonMakan = parseInt(expense.total_non_makanan_bulan) || 0;
+      const pengeluaranMakan = parseInt(expense.total_makan_bulan || expense.total_makanan_bulan) || 0;
+      const pengeluaranNonMakan = parseInt(expense.total_non_makan_bulan || expense.total_non_makanan_bulan) || 0;
       const totalPengeluaranKeluarga = pengeluaranMakan + pengeluaranNonMakan;
 
       const surplusDefisit = labaUsaha + totalGajiIjarah - totalPengeluaranKeluarga;
