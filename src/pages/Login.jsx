@@ -61,7 +61,16 @@ export default function Login() {
         navigate('/dashboard');
       }
     } catch (error) {
-      addToast(error.message || 'Terjadi kesalahan', 'error');
+      let errorMsg = error.message || 'Terjadi kesalahan';
+      if (errorMsg.includes('Invalid login credentials')) {
+        errorMsg = 'Email belum terdaftar atau password salah.';
+      } else if (errorMsg.includes('User already registered')) {
+        errorMsg = 'Akun sudah terdaftar. Silakan pilih menu Login.';
+      } else if (errorMsg.includes('Password should be at least')) {
+        errorMsg = 'Password minimal 6 karakter.';
+      }
+      
+      addToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
