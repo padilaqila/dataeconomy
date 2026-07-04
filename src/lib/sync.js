@@ -66,18 +66,18 @@ export const syncData = async () => {
             tahun_mulai: bus.tahun_mulai || null,
             alamat_usaha: bus.alamat_usaha || null,
             
-            total_upah_bulan: bus.total_upah_bulan || 0,
-            biaya_produksi_bulan: bus.biaya_produksi_bulan || 0,
-            biaya_pembelian_barang_bulan: bus.biaya_pembelian_barang_bulan || 0,
-            operasional_bulan: bus.operasional_bulan || 0,
-            non_operasional_bulan: bus.non_operasional_bulan || 0,
-            total_pengeluaran_usaha_bulan: bus.total_pengeluaran_usaha_bulan || 0,
+            total_upah_bulan: bus.total_upah_bulan || bus.upah || 0,
+            biaya_produksi_bulan: bus.biaya_produksi_bulan || bus.biaya_produksi || 0,
+            biaya_pembelian_barang_bulan: bus.biaya_pembelian_barang_bulan || bus.biaya_barang_terjual || 0,
+            operasional_bulan: bus.operasional_bulan || bus.operasional || 0,
+            non_operasional_bulan: bus.non_operasional_bulan || bus.non_operasional || 0,
+            total_pengeluaran_usaha_bulan: bus.total_pengeluaran_usaha_bulan || bus.pengeluaran_usaha_bulan || 0,
             
-            pendapatan_barang_jasa_bulan: bus.pendapatan_barang_jasa_bulan || 0,
-            pendapatan_barang_jasa_tahun: bus.pendapatan_barang_jasa_tahun || 0,
+            pendapatan_barang_jasa_bulan: bus.pendapatan_barang_jasa_bulan || bus.pendapatan_total_bulan || 0,
+            pendapatan_barang_jasa_tahun: bus.pendapatan_barang_jasa_tahun || bus.pendapatan_total_tahun || 0,
             pendapatan_lainnya_bulan: bus.pendapatan_lainnya_bulan || 0,
             pendapatan_lainnya_tahun: bus.pendapatan_lainnya_tahun || 0,
-            total_pendapatan_tahun: bus.total_pendapatan_tahun || 0,
+            total_pendapatan_tahun: bus.total_pendapatan_tahun || bus.pendapatan_total_tahun || 0,
             
             nilai_aset_tanah_bangunan: bus.nilai_aset_tanah_bangunan || 0,
             nilai_aset_selain_tanah: bus.nilai_aset_selain_tanah || 0,
@@ -92,8 +92,8 @@ export const syncData = async () => {
             rincian_makan: exp.rincian_makan || {},
             rincian_non_makan: exp.rincian_non_makan || {},
             rincian_tahunan: exp.rincian_tahunan || {},
-            total_makan_bulan: exp.total_makan_bulan || 0,
-            total_non_makan_bulan: exp.total_non_makan_bulan || 0,
+            total_makan_bulan: exp.total_makan_bulan || exp.total_makanan_bulan || 0,
+            total_non_makan_bulan: exp.total_non_makan_bulan || exp.total_non_makanan_bulan || 0,
             total_beban_keluarga_bulan: exp.total_beban_keluarga_bulan || 0
           }, { onConflict: 'respondent_id' });
         }
