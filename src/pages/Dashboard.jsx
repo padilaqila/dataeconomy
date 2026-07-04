@@ -27,24 +27,28 @@ export default function Dashboard() {
     try {
       let data = await BlockDB.getAllByUser(user.id);
       
-      // Auto-pull if empty on initial load
-      if (data.length === 0 && navigator.onLine) {
-        addToast('Menarik data dari Cloud...', 'info');
-        const pullRes = await pullData();
-        if (pullRes.success) {
-          data = await BlockDB.getAllByUser(user.id);
+      const updateState = async (blockData) => {
+        blockData.sort((a, b) => b.created_at - a.created_at);
+        setBlocks(blockData);
+        const newCounts = {};
+        for (const b of blockData) {
+          const respondents = await RespondentDB.getAllByBlock(b.id);
+          newCounts[b.id] = respondents.length;
         }
-      }
+        setCounts(newCounts);
+      };
 
-      data.sort((a, b) => b.created_at - a.created_at);
-      setBlocks(data);
-      
-      const newCounts = {};
-      for (const b of data) {
-        const respondents = await RespondentDB.getAllByBlock(b.id);
-        newCounts[b.id] = respondents.length;
+      await updateState(data);
+
+      // Auto-pull silently in background every time Dashboard loads
+      if (navigator.onLine) {
+        pullData().then(async (pullRes) => {
+          if (pullRes.success) {
+            const newData = await BlockDB.getAllByUser(user.id);
+            await updateState(newData);
+          }
+        }).catch(e => console.error('Auto-pull failed', e));
       }
-      setCounts(newCounts);
     } catch (e) {
       console.error(e);
       addToast('Gagal memuat daftar blok', 'error');

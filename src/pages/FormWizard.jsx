@@ -4,6 +4,7 @@ import MainLayout from '../layouts/MainLayout';
 import Button from '../components/Button';
 import useUIStore from '../stores/uiStore';
 import { RespondentDB } from '../db/db';
+import { syncData } from '../lib/sync';
 
 import Step1 from './wizard/Step1';
 import Step2 from './wizard/Step2';
@@ -81,7 +82,9 @@ export default function FormWizard() {
       addToast('Tersimpan', 'success');
       
       if (isEditMode) {
+        await RespondentDB.update(respondentId, { sync_status: 'pending', updated_at: Date.now() });
         navigate(`/recap/${respondentId}`);
+        syncData().catch(e => console.error('Auto-sync failed', e));
         return;
       }
 
@@ -91,6 +94,7 @@ export default function FormWizard() {
       } else {
         await RespondentDB.update(respondentId, { sync_status: 'pending', updated_at: Date.now() });
         navigate(`/recap/${respondentId}`);
+        syncData().catch(e => console.error('Auto-sync failed', e));
       }
     } catch (e) {
       addToast('Gagal menyimpan data', 'error');
