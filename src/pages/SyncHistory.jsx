@@ -6,8 +6,8 @@ import Card from '../components/Card';
 import Chip from '../components/Chip';
 import useUIStore from '../stores/uiStore';
 import { RespondentDB } from '../db/db';
-import { syncData } from '../lib/sync';
-import { RefreshCw, CheckCircle2, Clock } from 'lucide-react';
+import { syncData, pullData } from '../lib/sync';
+import { RefreshCw, CheckCircle2, Clock, DownloadCloud } from 'lucide-react';
 
 export default function SyncHistory() {
   const navigate = useNavigate();
@@ -44,6 +44,24 @@ export default function SyncHistory() {
     setSyncing(false);
   };
 
+  const handlePull = async () => {
+    if (!navigator.onLine) {
+      addToast('Anda sedang offline', 'error');
+      return;
+    }
+    setSyncing(true);
+    addToast('Menarik data...', 'success');
+    
+    const res = await pullData();
+    if (res.success) {
+      addToast(res.message, 'success');
+      loadData();
+    } else {
+      addToast(res.message, 'error');
+    }
+    setSyncing(false);
+  };
+
   const pendingCount = respondents.filter(r => r.sync_status === 'pending').length;
 
   return (
@@ -56,10 +74,16 @@ export default function SyncHistory() {
               {pendingCount > 0 ? `${pendingCount} Data menunggu sinkronisasi` : 'Semua data sudah tersinkronisasi'}
             </p>
           </div>
-          <Button onClick={handleSync} disabled={syncing || pendingCount === 0} className="flex items-center justify-center">
-            <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} /> 
-            {syncing ? 'Proses...' : 'Sync Sekarang'}
-          </Button>
+          <div className="flex space-x-2">
+            <Button onClick={handlePull} disabled={syncing} variant="secondary" className="flex items-center justify-center">
+              <DownloadCloud size={18} className={`mr-2 ${syncing ? 'animate-bounce' : ''}`} /> 
+              Tarik Data
+            </Button>
+            <Button onClick={handleSync} disabled={syncing || pendingCount === 0} className="flex items-center justify-center">
+              <RefreshCw size={18} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} /> 
+              {syncing ? 'Proses...' : 'Sync Data'}
+            </Button>
+          </div>
         </div>
       </Card>
 

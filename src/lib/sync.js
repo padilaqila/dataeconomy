@@ -138,3 +138,116 @@ export const syncData = async () => {
     return { success: false, message: err.message };
   }
 };
+
+export const pullData = async () => {
+  if (!navigator.onLine) return { success: false, message: 'Tidak ada koneksi internet' };
+  
+  const user = useAuthStore.getState().user;
+  if (!user) return { success: false, message: 'Belum login' };
+
+  try {
+    // 1. Ambil Blocks
+    const { data: blocks, error: blockErr } = await supabase.from('blocks').select('*').eq('user_id', user.id);
+    if (blockErr) throw blockErr;
+
+    if (blocks) {
+      for (const b of blocks) {
+        const existing = await BlockDB.getById(b.id);
+        if (!existing) {
+          await BlockDB.add({
+            id: b.id,
+            user_id: b.user_id,
+            nama_blok: b.nama_blok,
+            created_at: new Date(b.created_at).getTime()
+          });
+        }
+      }
+    }
+
+    // 2. Ambil Respondents
+    const { data: respondents, error: resErr } = await supabase.from('respondents').select('*');
+    if (resErr) throw resErr;
+
+    if (respondents) {
+      for (const r of respondents) {
+        const existing = await RespondentDB.getById(r.id);
+        // Jangan timpa jika data lokal masih berstatus 'pending' (belum di-push)
+        if (!existing || existing.sync_status === 'synced') {
+          // Kalau sudah ada tapi 'synced', bisa kita put/update
+          // Kalau belum ada, kita tambahkan
+          const resObj = {
+            id: r.id,
+            block_id: r.block_id,
+            no_bangunan: r.no_bangunan,
+            no_urut_kk: r.no_urut_kk,
+            nomor_kk: r.nomor_kk,
+            nama_kpl_keluarga: r.nama_kpl_keluarga,
+            alamat: r.alamat,
+            sync_status: 'synced', // dari cloud selalu diset synced
+            updated_at: new Date(r.updated_at).getTime()
+          };
+          if (!existing) {
+            await RespondentDB.add(resObj);
+          } else {
+            await RespondentDB.update(r.id, resObj);
+          }
+        }
+      }
+    }
+
+    // 3. Ambil Family Members
+    const { data: members, error: memErr } = await supabase.from('family_members').select('*');
+    if (memErr) throw memErr;
+    if (members) {
+      for (const m of members) {
+        // Karena members tidak punya 'getById' di Helper kita, ambil via Respondent ID
+        const existingAll = await FamilyMemberDB.getAllByRespondent(m.respondent_id);
+        const existing = existingAll.find(em => em.id === m.id);
+        if (!existing) {
+          await FamilyMemberDB.add(m);
+        }
+      }
+    }
+
+    // 4. Ambil Business Details
+    const { data: businesses, error: busErr } = await supabase.from('business_details').select('*');
+    if (busErr) throw busErr;
+    if (businesses) {
+      for (const b of businesses) {
+        const existing = await BusinessDetailDB.get(b.respondent_id);
+        if (!existing) {
+          await BusinessDetailDB.put(b);
+        }
+      }
+    }
+
+    // 5. Ambil Family Expenses
+    const { data: expenses, error: expErr } = await supabase.from('family_expenses').select('*');
+    if (expErr) throw expErr;
+    if (expenses) {
+      for (const e of expenses) {
+        const existing = await FamilyExpenseDB.get(e.respondent_id);
+        if (!existing) {
+          await FamilyExpenseDB.put(e);
+        }
+      }
+    }
+
+    // 6. Ambil Assets Conditions
+    const { data: assets, error: astErr } = await supabase.from('assets_conditions').select('*');
+    if (astErr) throw astErr;
+    if (assets) {
+      for (const a of assets) {
+        const existing = await AssetsConditionDB.get(a.respondent_id);
+        if (!existing) {
+          await AssetsConditionDB.put(a);
+        }
+      }
+    }
+
+    return { success: true, message: 'Data berhasil ditarik dari Cloud' };
+  } catch (err) {
+    console.error('Fatal pull error:', err);
+    return { success: false, message: 'Gagal menarik data: ' + err.message };
+  }
+};

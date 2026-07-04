@@ -7,6 +7,7 @@ import Input from '../components/Input';
 import useAuthStore from '../stores/authStore';
 import useUIStore from '../stores/uiStore';
 import { BlockDB, RespondentDB } from '../db/db';
+import { pullData } from '../lib/sync';
 
 export default function Dashboard() {
   const [blocks, setBlocks] = useState([]);
@@ -24,7 +25,17 @@ export default function Dashboard() {
   const loadBlocks = async () => {
     if (!user) return;
     try {
-      const data = await BlockDB.getAllByUser(user.id);
+      let data = await BlockDB.getAllByUser(user.id);
+      
+      // Auto-pull if empty on initial load
+      if (data.length === 0 && navigator.onLine) {
+        addToast('Menarik data dari Cloud...', 'info');
+        const pullRes = await pullData();
+        if (pullRes.success) {
+          data = await BlockDB.getAllByUser(user.id);
+        }
+      }
+
       data.sort((a, b) => b.created_at - a.created_at);
       setBlocks(data);
       
