@@ -45,11 +45,11 @@ export default function Recapitulation() {
       const business = await BusinessDetailDB.get(respondentId) || {};
       
       // R26 fields
-      const upah = parseInt(business.total_upah_bulan || business.upah) || 0;
-      const biayaProduksi = parseInt(business.biaya_produksi_bulan || business.biaya_produksi) || 0;
-      const biayaBarangTerjual = parseInt(business.biaya_pembelian_barang_bulan || business.biaya_barang_terjual) || 0;
-      const operasional = parseInt(business.operasional_bulan || business.operasional) || 0;
-      const nonOperasional = parseInt(business.non_operasional_bulan || business.non_operasional) || 0;
+      const upah = parseInt(business.r26a_upah || business.total_upah_bulan || business.upah) || 0;
+      const biayaProduksi = parseInt(business.r26b_produksi || business.biaya_produksi_bulan || business.biaya_produksi) || 0;
+      const biayaBarangTerjual = parseInt(business.r26c_barang_dagangan || business.biaya_pembelian_barang_bulan || business.biaya_barang_terjual) || 0;
+      const operasional = parseInt(business.r26d_operasional || business.operasional_bulan || business.operasional) || 0;
+      const nonOperasional = parseInt(business.r26e_non_operasional || business.non_operasional_bulan || business.non_operasional) || 0;
       const pengeluaranUsaha = parseInt(business.total_pengeluaran_usaha_bulan || business.pengeluaran_usaha_bulan) || (upah + biayaProduksi + biayaBarangTerjual + operasional + nonOperasional);
 
       // R27 fields (new structure)

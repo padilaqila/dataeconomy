@@ -100,6 +100,7 @@ export const getSectorFields = (sectorId) => {
 export const calculateSectorTotals = (sectorId, data) => {
   let omsetBulan = 0;
   let pengeluaranBulan = 0;
+  let bpsMapped = { r26a: 0, r26b: 0, r26c: 0, r26d: 0, r26e: 0 };
   
   // Helper for safe number conversion
   const val = (key) => Number(data[key]) || 0;
@@ -107,35 +108,44 @@ export const calculateSectorTotals = (sectorId, data) => {
   switch (sectorId) {
     case 'retail':
       omsetBulan = val('omset_hari') * 30;
-      pengeluaranBulan = val('modal_awal') + val('gaji_karyawan') + val('sewa_tempat') + val('operasional');
+      bpsMapped.r26c = val('modal_awal');
+      bpsMapped.r26a = val('gaji_karyawan');
+      bpsMapped.r26e = val('sewa_tempat');
+      bpsMapped.r26d = val('operasional');
       break;
     
     case 'kuliner':
       omsetBulan = val('omset_hari') * 30;
-      pengeluaranBulan = (val('bahan_baku') * 30) + val('gaji_karyawan') + val('sewa_tempat') + val('operasional');
+      bpsMapped.r26b = val('bahan_baku') * 30;
+      bpsMapped.r26a = val('gaji_karyawan');
+      bpsMapped.r26e = val('sewa_tempat');
+      bpsMapped.r26d = val('operasional');
       break;
       
     case 'jasa':
       omsetBulan = (val('pelanggan_hari') * val('tarif_rata')) * 30;
-      pengeluaranBulan = val('gaji_karyawan') + val('sewa_tempat') + val('bahan_habis') + val('operasional');
+      bpsMapped.r26b = val('bahan_habis');
+      bpsMapped.r26a = val('gaji_karyawan');
+      bpsMapped.r26e = val('sewa_tempat');
+      bpsMapped.r26d = val('operasional');
       break;
       
     case 'perikanan': {
       const siklus = val('siklus_panen') || 1; // Prevent division by zero
       omsetBulan = val('omset_panen') / siklus;
-      pengeluaranBulan = (val('biaya_bibit') + val('biaya_pakan') + val('biaya_perawatan')) / siklus;
+      bpsMapped.r26b = (val('biaya_bibit') + val('biaya_pakan') + val('biaya_perawatan')) / siklus;
       break;
     }
     
     case 'pertanian': {
       const siklus = val('siklus_panen') || 1;
       const totalPanen = val('hasil_panen') * val('harga_jual');
-      const totalBiaya = val('biaya_bibit') + val('biaya_pupuk') + val('biaya_pestisida') + 
-                         val('biaya_buruh') + val('biaya_sewa_lahan') + val('biaya_sewa_alat') + 
-                         val('biaya_transportasi');
-                         
       omsetBulan = totalPanen / siklus;
-      pengeluaranBulan = totalBiaya / siklus;
+      
+      bpsMapped.r26b = (val('biaya_bibit') + val('biaya_pupuk') + val('biaya_pestisida')) / siklus;
+      bpsMapped.r26a = val('biaya_buruh') / siklus;
+      bpsMapped.r26e = val('biaya_sewa_lahan') / siklus;
+      bpsMapped.r26d = (val('biaya_sewa_alat') + val('biaya_transportasi')) / siklus;
       break;
     }
     
@@ -148,25 +158,33 @@ export const calculateSectorTotals = (sectorId, data) => {
         // Panen
         omsetBulan = (val('hasil_produksi') * val('harga_jual')) / siklus;
       }
-      pengeluaranBulan = val('biaya_pakan') + val('biaya_vaksin') + val('gaji_karyawan');
+      bpsMapped.r26b = val('biaya_pakan') + val('biaya_vaksin');
+      bpsMapped.r26a = val('gaji_karyawan');
       break;
     }
     
     case 'pendidikan':
       omsetBulan = val('jumlah_siswa') * val('spp_siswa');
-      pengeluaranBulan = val('gaji_guru') + val('sewa_gedung') + val('operasional');
+      bpsMapped.r26a = val('gaji_guru');
+      bpsMapped.r26e = val('sewa_gedung');
+      bpsMapped.r26d = val('operasional');
       break;
       
     case 'pemerintah_desa':
       omsetBulan = val('omset_kotor');
-      pengeluaranBulan = val('gaji_pengurus') + val('operasional') + (val('setoran_pades') / 12);
+      bpsMapped.r26a = val('gaji_pengurus');
+      bpsMapped.r26d = val('operasional');
+      bpsMapped.r26e = val('setoran_pades') / 12;
       break;
       
     case 'posyandu':
       omsetBulan = val('dana_desa') + val('dana_swadaya');
-      pengeluaranBulan = val('biaya_pmt') + val('insentif_kader');
+      bpsMapped.r26d = val('biaya_pmt');
+      bpsMapped.r26a = val('insentif_kader');
       break;
   }
   
-  return { omsetBulan, pengeluaranBulan };
+  pengeluaranBulan = bpsMapped.r26a + bpsMapped.r26b + bpsMapped.r26c + bpsMapped.r26d + bpsMapped.r26e;
+  
+  return { omsetBulan, pengeluaranBulan, bpsMapped };
 };

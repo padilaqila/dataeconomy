@@ -69,7 +69,7 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
     
     const saveFunction = async () => {
       // Calculate derived totals
-      const { omsetBulan, pengeluaranBulan } = calculateSectorTotals(sektorId, sektorData);
+      const { omsetBulan, pengeluaranBulan, bpsMapped } = calculateSectorTotals(sektorId, sektorData);
       const omsetTahun = omsetBulan * 12;
 
       // Map back to DB schema format
@@ -93,6 +93,14 @@ export default function Step2({ respondentId, onNext, setDirty, isEditMode }) {
         total_pengeluaran_usaha_bulan: pengeluaranBulan,
         pendapatan_barang_jasa_bulan: omsetBulan,
         pendapatan_barang_jasa_tahun: omsetTahun,
+        
+        // BPS Exact Field Mappings (Rincian 26)
+        r26a_upah: bpsMapped.r26a,
+        r26b_produksi: bpsMapped.r26b,
+        r26c_barang_dagangan: bpsMapped.r26c,
+        r26d_operasional: bpsMapped.r26d,
+        r26e_non_operasional: bpsMapped.r26e,
+
         // Legacy fallback
         pendapatan_total_bulan: omsetBulan,
         pendapatan_total_tahun: omsetTahun

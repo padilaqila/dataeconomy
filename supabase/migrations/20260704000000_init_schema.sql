@@ -99,6 +99,11 @@ CREATE TABLE IF NOT EXISTS public.business_details (
   nib                            TEXT,
   alamat_usaha                   TEXT,
   -- Pengeluaran usaha (/bulan)
+  r26a_upah                      NUMERIC DEFAULT 0,
+  r26b_produksi                  NUMERIC DEFAULT 0,
+  r26c_barang_dagangan           NUMERIC DEFAULT 0,
+  r26d_operasional               NUMERIC DEFAULT 0,
+  r26e_non_operasional           NUMERIC DEFAULT 0,
   total_upah_bulan               NUMERIC DEFAULT 0,
   biaya_produksi_bulan           NUMERIC DEFAULT 0,
   biaya_pembelian_barang_bulan   NUMERIC DEFAULT 0,

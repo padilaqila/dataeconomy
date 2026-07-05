@@ -21,6 +21,7 @@ Aplikasi ini **bukan** sistem pelaporan resmi, **bukan** pengganti aplikasi BPS,
 
 | Area | Draft Awal | Revisi Final | Alasan |
 |---|---|---|---|
+| Penyelarasan Rincian BPS | Format rekapitulasi generik (Laba Bersih & Total Pengeluaran) | **Penyelarasan Penuh Rincian 26 & 27 BPS**. Form dinamis dipetakan ke 26a-e dan 27a-b. Panel Rekapitulasi dibuat identik. | Memastikan user tinggal melakukan *Quick Copy* angka akhir yang 100% selaras dengan aplikasi pelaporan BPS. |
 | Form usaha | Wizard generik 1 skema untuk semua jenis usaha | **Tetap 1 skema**, ikuti field resmi BPS apa adanya | Form resmi BPS sendiri sudah generik lintas sektor (field "Biaya Produksi" mencakup pupuk, pakan, bahan baku sekaligus) |
 | Kalkulasi musiman/siklus | Sempat diusulkan jadi kolom data baru | **Panel kalkulator bantu UI-only**, hasil isi ke field resmi, tidak ada skema data baru | Quick Copy harus tetap sinkron dengan field resmi BPS, bukan field tambahan yang tidak ada padanannya |
 | Sync data | Auto-sync tiap step (draft mentah) | Sync 1x saat responden **selesai** dikalkulasi | Fungsi utama cuma kalkulator, bukan sistem pelaporan real-time — sync draft mentah tidak perlu |
@@ -98,12 +99,18 @@ Aplikasi ini **bukan** sistem pelaporan resmi, **bukan** pengganti aplikasi BPS,
 ### Langkah 2: Profil Usaha & Pengeluaran (Dinamis 9 Sektor)
 - Identitas Usaha: Pemilihan **Kategori Sektor Usaha** (1 dari 9 Sektor), Jenis Barang, Tahun Mulai, NIB, Alamat Usaha.
 - Rincian Finansial Sektor: Input dinamis menyesuaikan sektor (misal: Retail butuh Omset/hari & Kulakan; Pertanian butuh Luas Lahan & Biaya Pupuk).
-- **Estimasi Otomatis:** Sistem langsung menghitung Total Pengeluaran Bulanan dan Pemasukan (Omset) Bulanan berdasarkan rumus sektor.
+- **Estimasi Otomatis & Pemetaan (Rincian 26):** Sistem langsung menghitung dan memetakan input dinamis ke dalam 5 keranjang resmi BPS:
+  - 26.a. Total upah dan gaji
+  - 26.b. Biaya produksi
+  - 26.c. Pembelian barang dagangan
+  - 26.d. Biaya operasional
+  - 26.e. Biaya non-operasional
 
 ### Langkah 3: Pendapatan & Aset Usaha
-- **27.a Nilai produksi/pendapatan utama:** Ditampilkan otomatis (Read-Only) berdasarkan kalkulasi dari Step 2. (Nilai /bulan dan /tahun).
-- **27.b Pendapatan Lainnya:** Input manual /bulan dan /tahun.
-- Total Nilai Penjualan (A+B) /tahun
+- **Pemetaan Pendapatan (Rincian 27):**
+  - **27.a Nilai produksi/pendapatan utama:** Ditampilkan otomatis berdasarkan kalkulasi dari Step 2.
+  - **27.b Pendapatan Lainnya:** Input manual /bulan dan /tahun.
+  - **27.c Total Nilai Penjualan (A+B):** Otomatis /tahun.
 - Aset Usaha: Total Aset Usaha (Perkiraan)
 
 ### Langkah 4: Pengeluaran Makan Keluarga (D.1)
@@ -153,18 +160,31 @@ Ditujukan untuk usaha dengan pola musiman (pertanian, perikanan tambak, dll) yan
 
 ---
 
-## 8. Panel Rekapitulasi & Quick Copy
+## 8. Panel Rekapitulasi & Quick Copy (Format BPS Rincian 26 & 27)
 
-Setelah Step 6 selesai, sistem tampilkan **Panel Rekapitulasi**.
+Setelah Step 6 selesai, sistem tampilkan **Panel Rekapitulasi BPS**.
 
-**Kalkulasi Akhir:**
+**Format Rekapitulasi (Identik dengan BPS):**
+- **Pengeluaran:**
+  - 26. a. Total upah dan gaji, serta jaminan sosial pegawai
+  - 26. b. Biaya produksi
+  - 26. c. Pembelian Barang Dagangan
+  - 26. d. Biaya operasional (air, listrik, gas, internet, dll)
+  - 26. e. Biaya non-operasional
+  - 26. f. Total pengeluaran (a+b+c+d+e) - (Read-only)
+- **Pendapatan:**
+  - 27. a. Nilai produksi/pendapatan/penjualan barang dan jasa
+  - 27. b. Pendapatan lainnya yang dihasilkan perusahaan
+  - 27. c. Total nilai (a+b) - (Read-only)
+
+**Kalkulasi Indikator Tambahan (Di bawah panel BPS):**
 - `Laba Bersih Usaha (Bulan)` = Pendapatan Usaha Bulan − Total Pengeluaran Usaha Bulan
 - `Total Pengeluaran Keluarga (Bulan)` = Pengeluaran Makan Bulan + Non-Makan Bulanan + (Tahunan ÷ 12)
 - `Surplus/Defisit Keuangan` = Laba Bersih Usaha (Bulan) − Total Pengeluaran Keluarga (Bulan)
 
 **Quick Copy:**
-- Tiap baris indikator kunci punya tombol ikon Copy (min. 44x44px touch-target)
-- Ambil nilai angka mentah tanpa titik/koma (`15000000`, bukan `Rp 15.000.000`)
+- Tiap baris field BPS (26a-e, 27a-b) punya tombol ikon Copy (min. 44x44px touch-target)
+- Ambil nilai angka mentah tanpa titik/koma (contoh: `15000000`, bukan `Rp 15.000.000`)
 - `navigator.clipboard.writeText(value)`
 - Toast hijau "Tersalin!"
 
