@@ -1,5 +1,5 @@
 -- ============================================================
--- Kalkulator SE-2026 — Initial Schema Migration
+-- Kalkulator SE-2026 — Initial Schema Migration (v3.0.0 PRD)
 -- ============================================================
 
 -- ─────────────────────────────────────────────────────────────
@@ -68,100 +68,20 @@ CREATE TABLE IF NOT EXISTS public.respondents (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-
 -- ─────────────────────────────────────────────────────────────
--- 4. Tabel: public.family_members
---    Anggota keluarga dan pendapatan masing-masing (Step 1).
+-- 4. Tabel: public.financial_records
+--    Data spesifik modul 6 sektor (disimpan dalam JSONB).
 -- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.family_members (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  respondent_id  UUID NOT NULL REFERENCES public.respondents(id) ON DELETE CASCADE,
-  nama           TEXT,
-  pekerjaan      TEXT,
-  gaji           NUMERIC DEFAULT 0,
-  ijarah         NUMERIC DEFAULT 0,
-  rekening       NUMERIC DEFAULT 0,
-  status_tinggal TEXT
-);
-
-
--- ─────────────────────────────────────────────────────────────
--- 5. Tabel: public.business_details
---    Profil usaha + pendapatan + pengeluaran usaha (Step 2 & 3).
---    Kolom pendapatan sudah disesuaikan dengan migrasi Dexie v2
---    (R27.a = barang/jasa, R27.b = lainnya, R27.c = total).
--- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.business_details (
-  respondent_id                  UUID PRIMARY KEY REFERENCES public.respondents(id) ON DELETE CASCADE,
-  jenis_usaha                    TEXT,
-  jenis_barang                   TEXT,
-  tahun_mulai                    INTEGER,
-  nib                            TEXT,
-  alamat_usaha                   TEXT,
-  -- Pengeluaran usaha (/bulan)
-  r26a_upah                      NUMERIC DEFAULT 0,
-  r26b_produksi                  NUMERIC DEFAULT 0,
-  r26c_barang_dagangan           NUMERIC DEFAULT 0,
-  r26d_operasional               NUMERIC DEFAULT 0,
-  r26e_non_operasional           NUMERIC DEFAULT 0,
-  total_upah_bulan               NUMERIC DEFAULT 0,
-  biaya_produksi_bulan           NUMERIC DEFAULT 0,
-  biaya_pembelian_barang_bulan   NUMERIC DEFAULT 0,
-  operasional_bulan              NUMERIC DEFAULT 0,
-  non_operasional_bulan          NUMERIC DEFAULT 0,
-  total_pengeluaran_usaha_bulan  NUMERIC DEFAULT 0,
-  -- Pendapatan (R27.a): Nilai Penjualan & Jasa
-  pendapatan_barang_jasa_bulan   NUMERIC DEFAULT 0,
-  pendapatan_barang_jasa_tahun   NUMERIC DEFAULT 0,
-  -- Pendapatan (R27.b): Lainnya
-  pendapatan_lainnya_bulan       NUMERIC DEFAULT 0,
-  pendapatan_lainnya_tahun       NUMERIC DEFAULT 0,
-  -- Pendapatan (R27.c): Total /tahun
-  total_pendapatan_tahun         NUMERIC DEFAULT 0,
-  -- Aset usaha
-  nilai_aset_tanah_bangunan      NUMERIC DEFAULT 0,
-  nilai_aset_selain_tanah        NUMERIC DEFAULT 0,
-  total_aset_usaha               NUMERIC DEFAULT 0
-);
-
-
--- ─────────────────────────────────────────────────────────────
--- 6. Tabel: public.family_expenses
---    Pengeluaran makan (Step 4) dan non-makan (Step 5).
---    Rincian disimpan dalam jsonb untuk fleksibilitas.
--- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.family_expenses (
-  respondent_id            UUID PRIMARY KEY REFERENCES public.respondents(id) ON DELETE CASCADE,
-  rincian_makan            JSONB,  -- {beras, sayuran, lauk, ...}
-  rincian_non_makan        JSONB,  -- {listrik, internet, air, ...}
-  rincian_tahunan          JSONB,  -- {beli_baju, pajak_stnk, ...}
-  total_makan_bulan        NUMERIC DEFAULT 0,
-  total_non_makan_bulan    NUMERIC DEFAULT 0,
-  total_beban_keluarga_bulan NUMERIC DEFAULT 0
-);
-
-
--- ─────────────────────────────────────────────────────────────
--- 7. Tabel: public.assets_conditions
---    Aset dan kondisi hunian (Step 6).
--- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.assets_conditions (
-  respondent_id                UUID PRIMARY KEY REFERENCES public.respondents(id) ON DELETE CASCADE,
-  luas_bangunan_tinggal        NUMERIC,
-  luas_tanah_ditempati         NUMERIC,
-  luas_bangunan_usaha          NUMERIC,
-  tanah_selain_ditempati_unit  INTEGER,
-  tanah_selain_ditempati_m2    NUMERIC,
-  tanah_selain_ditempati_rp    NUMERIC,
-  nilai_aset_tanah_bangunan    NUMERIC DEFAULT 0,
-  jml_motor                    INTEGER DEFAULT 0,
-  val_motor_rp                 NUMERIC DEFAULT 0,
-  jml_mobil                    INTEGER DEFAULT 0,
-  val_mobil_rp                 NUMERIC DEFAULT 0,
-  emas_gram                    NUMERIC DEFAULT 0,
-  emas_rp                      NUMERIC DEFAULT 0,
-  riwayat_penyakit             TEXT,
-  disabilitas                  TEXT
+CREATE TABLE IF NOT EXISTS public.financial_records (
+  id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  respondent_id          UUID NOT NULL REFERENCES public.respondents(id) ON DELETE CASCADE,
+  module_type            TEXT,   -- enum: 'RUMAH_TANGGA', 'PERTANIAN', 'PERDAGANGAN_JASA', 'PETERNAKAN', 'PERIKANAN', 'INDUSTRI_PENGOLAHAN'
+  module_data            JSONB,  -- harga referensi, jumlah barang, rincian biaya/pendapatan
+  total_income_monthly   NUMERIC DEFAULT 0,
+  total_income_yearly    NUMERIC DEFAULT 0,
+  total_expense_monthly  NUMERIC DEFAULT 0,
+  total_expense_yearly   NUMERIC DEFAULT 0,
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
@@ -211,82 +131,12 @@ CREATE POLICY "Users can manage own respondents"
     )
   );
 
+-- ── public.financial_records ──────────────────────────────────
+ALTER TABLE public.financial_records ENABLE ROW LEVEL SECURITY;
 
--- ── public.family_members ─────────────────────────────────────
-ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own family members" ON public.family_members;
-CREATE POLICY "Users can manage own family members"
-  ON public.family_members
-  FOR ALL
-  USING (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  );
-
-
--- ── public.business_details ───────────────────────────────────
-ALTER TABLE public.business_details ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own business details" ON public.business_details;
-CREATE POLICY "Users can manage own business details"
-  ON public.business_details
-  FOR ALL
-  USING (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  );
-
-
--- ── public.family_expenses ────────────────────────────────────
-ALTER TABLE public.family_expenses ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own family expenses" ON public.family_expenses;
-CREATE POLICY "Users can manage own family expenses"
-  ON public.family_expenses
-  FOR ALL
-  USING (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    respondent_id IN (
-      SELECT r.id FROM public.respondents r
-      JOIN public.blocks b ON b.id = r.block_id
-      WHERE b.user_id = auth.uid()
-    )
-  );
-
-
--- ── public.assets_conditions ─────────────────────────────────
-ALTER TABLE public.assets_conditions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own assets" ON public.assets_conditions;
-CREATE POLICY "Users can manage own assets"
-  ON public.assets_conditions
+DROP POLICY IF EXISTS "Users can manage own financial records" ON public.financial_records;
+CREATE POLICY "Users can manage own financial records"
+  ON public.financial_records
   FOR ALL
   USING (
     respondent_id IN (

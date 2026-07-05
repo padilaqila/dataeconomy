@@ -84,8 +84,13 @@ export default function Payment() {
           <h2 className="font-['Archivo_Black'] uppercase text-2xl md:text-3xl mb-4">
             Beli Akses Lifetime
           </h2>
-          <div className="text-5xl font-['Archivo_Black'] mb-6">
-            Rp 25.000
+          <div className="flex flex-col items-center justify-center mb-6">
+            <span className="text-xl text-gray-500 line-through decoration-2 font-['Archivo_Black']">
+              Rp 35.000
+            </span>
+            <span className="text-5xl text-red-600 font-['Archivo_Black'] mt-1">
+              Rp 20.000
+            </span>
           </div>
           <p className="font-['Work_Sans'] text-gray-700 mb-8 text-left border-t-[3px] border-b-[3px] border-black py-4 border-dashed">
             - Akses selamanya (Lifetime)<br/>
