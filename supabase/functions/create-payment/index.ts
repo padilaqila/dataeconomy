@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const payload = {
       transaction_details: {
         order_id: order_id,
-        gross_amount: 25000
+        gross_amount: 20000
       },
       customer_details: {
         first_name: first_name || "Petugas Sensus",
@@ -38,7 +38,12 @@ Deno.serve(async (req) => {
     }
 
     // Call Midtrans Snap API
-    const response = await fetch('https://app.sandbox.midtrans.com/snap/v1/transactions', {
+    const isProd = !MIDTRANS_SERVER_KEY.startsWith('SB-');
+    const midtransUrl = isProd
+      ? 'https://app.midtrans.com/snap/v1/transactions'
+      : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
+    const response = await fetch(midtransUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

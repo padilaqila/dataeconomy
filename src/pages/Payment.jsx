@@ -16,8 +16,11 @@ export default function Payment() {
 
   useEffect(() => {
     // Load Midtrans Snap Script
-    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
-    const scriptUrl = 'https://app.sandbox.midtrans.com/snap/snap.js';
+    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || '';
+    const isProd = !clientKey.startsWith('SB-');
+    const scriptUrl = isProd 
+      ? 'https://app.midtrans.com/snap/snap.js' 
+      : 'https://app.sandbox.midtrans.com/snap/snap.js';
     
     let scriptTag = document.getElementById('midtrans-script');
     if (!scriptTag) {
