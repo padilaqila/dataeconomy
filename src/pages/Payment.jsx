@@ -14,29 +14,6 @@ export default function Payment() {
   const checkUserStatus = useAuthStore(state => state.checkUserStatus);
   const addToast = useUIStore(state => state.addToast);
 
-  useEffect(() => {
-    // Load Midtrans Snap Script
-    const clientKey = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || '';
-    const isProd = !clientKey.startsWith('SB-');
-    const scriptUrl = isProd 
-      ? 'https://app.midtrans.com/snap/snap.js' 
-      : 'https://app.sandbox.midtrans.com/snap/snap.js';
-    
-    let scriptTag = document.getElementById('midtrans-script');
-    if (!scriptTag) {
-      scriptTag = document.createElement('script');
-      scriptTag.src = scriptUrl;
-      scriptTag.setAttribute('data-client-key', clientKey);
-      scriptTag.id = 'midtrans-script';
-      document.body.appendChild(scriptTag);
-    }
-    
-    return () => {
-      // Cleanup is optional, but usually better to leave the script loaded 
-      // if user navigates back and forth, to avoid re-downloading.
-    };
-  }, []);
-
   const handlePay = async () => {
     setLoading(true);
     try {
@@ -51,28 +28,11 @@ export default function Payment() {
       });
       
       if (error) throw error;
-      if (!data?.token) throw new Error("Gagal mendapatkan token transaksi dari server");
+      if (!data?.redirect_url) throw new Error("Gagal mendapatkan link pembayaran dari server");
 
-      window.snap.pay(data.token, {
-        onSuccess: async function(result) {
-          addToast("Pembayaran berhasil diproses!", "success");
-          // Status di database akan diupdate via Webhook, 
-          // tapi kita bisa langsung arahkan ke halaman sukses
-          navigate('/payment-status?status=success');
-        },
-        onPending: function(result) {
-          addToast("Menunggu pembayaran diselesaikan...", "info");
-          navigate('/payment-status?status=pending');
-        },
-        onError: function(result) {
-          addToast("Pembayaran gagal", "error");
-          setLoading(false);
-        },
-        onClose: function() {
-          addToast("Anda menutup popup pembayaran", "warning");
-          setLoading(false);
-        }
-      });
+      // Menggunakan mode Redirect URL (lebih kebal AdBlocker daripada mode Pop-up)
+      window.location.href = data.redirect_url;
+      
     } catch (e) {
       console.error(e);
       addToast(e.message || "Terjadi kesalahan saat memproses pembayaran", "error");
