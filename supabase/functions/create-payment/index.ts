@@ -32,9 +32,7 @@ Deno.serve(async (req) => {
         email: email
       },
       // Menggunakan custom_field1 untuk menyimpan full UUID
-      custom_field1: user_id,
-      // Mengaktifkan metode pembayaran yang diinginkan (Opsional, bisa juga diatur di Midtrans Dashboard)
-      enabled_payments: ["credit_card", "mandiri_clickpay", "cimb_clicks", "bca_klikbca", "bca_klikpay", "bri_epay", "echannel", "indosat_dompetku", "mandiri_ecash", "permata_va", "bca_va", "bni_va", "other_va", "gopay", "kioson", "indomaret", "gci", "danamon_online"]
+      custom_field1: user_id
     }
 
     // Call Midtrans Snap API
